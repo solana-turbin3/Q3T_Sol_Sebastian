@@ -21,4 +21,8 @@ pub mod escrow_class {
         ctx.accounts.deposit()?;
         ctx.accounts.wihdraw_and_close_vault()
     }
+
+    pub fn cancel_escrow(ctx: Context<Cancel>, _seed: u64) -> Result<()> {
+        ctx.accounts.cancel_escrow()
+    }
 }

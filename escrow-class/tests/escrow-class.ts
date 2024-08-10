@@ -34,6 +34,9 @@ describe("escrow-class", () => {
     let escrow: anchor.web3.PublicKey;
     let vault: anchor.web3.PublicKey;
 
+    let escrowForCancel: anchor.web3.PublicKey;
+    let vaultForCancel: anchor.web3.PublicKey;
+
     before(async () => {
 
         const airdropForGod = await connection.requestAirdrop(
@@ -74,7 +77,7 @@ describe("escrow-class", () => {
             connection,
             god,
             mintA,
-            maker.publicKey
+            maker.publicKey,
         )).address;
 
         takerAtaB = (await token.getOrCreateAssociatedTokenAccount(
@@ -174,7 +177,9 @@ describe("escrow-class", () => {
             connection,
             god,
             mintB,
-            maker.publicKey
+            maker.publicKey,
+            false,
+            "confirmed"
         )).address;
 
         const makerAtaBInfo = await token.getAccount(
@@ -187,7 +192,9 @@ describe("escrow-class", () => {
             connection,
             god,
             mintA,
-            taker.publicKey
+            taker.publicKey,
+            false,
+            "confirmed"
         )).address;
 
         const takerAtaAInfo = await token.getAccount(
@@ -202,5 +209,62 @@ describe("escrow-class", () => {
         expect(Number(takerAtaAInfo.amount))
             .to.equal(Number(deposit * (10 ** decimals)))
     });
+
+    it("cancels the escrow", async () => {
+
+        const initialMakerBalance = (await token.getAccount(connection, makerAtaA)).amount;
+
+        await program.methods
+            .initialize(
+                new anchor.BN(escrowSeed + 1),
+                new anchor.BN(receive * (10 ** decimals)),
+                new anchor.BN(1 * (10 ** decimals)),
+            )
+            .accounts({
+                maker: maker.publicKey,
+                mintA: mintA,
+                mintB: mintB,
+                tokenProgram: token.TOKEN_PROGRAM_ID
+            })
+            .signers([
+                maker
+            ])
+            .rpc();
+
+            const escrowAccounts = await program.account.escrow.all();
+            const escrowAccount = escrowAccounts[escrowAccounts.length - 1]
+            
+            escrowForCancel = escrowAccount.publicKey;
+
+            vaultForCancel = token.getAssociatedTokenAddressSync(
+                mintA,
+                escrowForCancel,
+                true
+            );
+
+            const tx = await program.methods
+                .cancelEscrow(
+                    new anchor.BN(escrowSeed + 1)
+                )
+                .accounts({
+                    maker: maker.publicKey,
+                    mintA: mintA,
+                    mintB: mintB,
+                    tokenProgram: token.TOKEN_PROGRAM_ID,
+                    escrow: escrowForCancel,
+                    makerAtaA: makerAtaA
+                })
+                .signers([
+                    maker
+                ])
+                .rpc()
+
+            await connection.confirmTransaction(tx, "confirmed");
+
+            const finalMakerBalance = (await token.getAccount(connection, makerAtaA)).amount;
+
+            expect(Number(finalMakerBalance)).to.equal(Number(initialMakerBalance));
+
+    })
 
 });
