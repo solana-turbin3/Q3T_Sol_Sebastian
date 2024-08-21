@@ -1,5 +1,9 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{metadata::{mpl_token_metadata::instructions::{FreezeDelegatedAccountCpi, FreezeDelegatedAccountCpiAccounts}, MasterEditionAccount, Metadata, MetadataAccount}, token::{approve, Approve, Mint, Token, TokenAccount}};
+use anchor_spl::{
+    associated_token::AssociatedToken, metadata::{
+        MasterEditionAccount, Metadata, MetadataAccount,
+    }, token::{transfer_checked, Mint, Token, TokenAccount, TransferChecked}
+};
 
 use crate::state::{Listing, Marketplace, WhitelistAccount};
 
@@ -18,6 +22,21 @@ pub struct List<'info> {
         bump = whitelist.bump
     )]
     pub whitelist: Account<'info, WhitelistAccount>,
+    #[account(
+        init,
+        associated_token::mint = mint,
+        associated_token::authority = marketplace,
+        payer = maker
+    )]
+    pub vault: Account<'info, TokenAccount>,
+    #[account(
+        init,
+        seeds = [b"listing", marketplace.key().as_ref(), mint.key().as_ref()],
+        bump,
+        space = Listing::LEN,
+        payer = maker,
+    )]
+    pub listing: Account<'info, Listing>,
     pub mint: Account<'info, Mint>,
     #[account(
         mut,
@@ -25,14 +44,6 @@ pub struct List<'info> {
         associated_token::authority = maker
     )]
     pub mint_ata: Account<'info, TokenAccount>,
-    #[account(
-        init,
-        seeds = [b"listing", mint.key().as_ref()],
-        bump,
-        space = Listing::LEN,
-        payer = maker
-    )]
-    pub listing: Account<'info, Listing>,
     pub collection: Account<'info, Mint>,
     #[account(
         seeds = [
@@ -57,57 +68,46 @@ pub struct List<'info> {
         bump,
     )]
     pub edition: Account<'info, MasterEditionAccount>,
+    #[account(
+        seeds = [b"rewards", marketplace.key().as_ref()],
+        bump = marketplace.rewards_bump,
+    )]
+    pub rewards: Account<'info, Mint>,
+    #[account(
+        init_if_needed,
+        payer = maker,
+        associated_token::mint = rewards,
+        associated_token::authority = maker
+    )]
+    pub maker_rewards_ata: Account<'info, TokenAccount>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub metadata_program: Program<'info, Metadata>,
+    pub associated_token_program: Program<'info, AssociatedToken>
 }
 
 impl<'info> List<'info> {
-    pub fn create_list(&mut self, bumps: &ListBumps, price: u64, name: String) -> Result<()> {
+    pub fn create_list(&mut self, bumps: &ListBumps, price: u64) -> Result<()> {
 
         self.listing.set_inner(Listing {
-            marketplace: self.marketplace.key(),
-            mint: self.mint.key(),
             price,
-            bump: bumps.listing
+            bump: bumps.listing,
+            maker: self.maker.key(),
+            mint: self.mint.key(),
         });
 
         let cpi_program = self.token_program.to_account_info();
 
-        let cpi_accounts = Approve {
-            to: self.mint_ata.to_account_info(),
-            delegate: self.marketplace.to_account_info(),
-            authority: self.maker.to_account_info()
+        let cpi_accounts = TransferChecked {
+            to: self.vault.to_account_info(),
+            mint: self.mint.to_account_info(),
+            authority: self.maker.to_account_info(),
+            from: self.mint_ata.to_account_info()
         };
 
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
-        approve(cpi_ctx, 1)?;
-
-        let seeds = &[
-            b"marketplace",
-            name.as_bytes(),
-            &[self.marketplace.bump]
-        ];
-        let signer_seeds = &[&seeds[..]];
-
-        let delegate = &self.marketplace.to_account_info();
-        let token_account = &self.mint_ata.to_account_info();
-        let edition = &self.edition.to_account_info();
-        let mint = &self.mint.to_account_info();
-        let token_program = &self.token_program.to_account_info();
-        let metadata_program = &self.metadata_program.to_account_info();
-
-        FreezeDelegatedAccountCpi::new(
-            metadata_program,
-            FreezeDelegatedAccountCpiAccounts {
-                delegate,
-                token_account,
-                edition,
-                mint,
-                token_program,
-            },
-        ).invoke_signed(signer_seeds)?;
+        transfer_checked(cpi_ctx, 1, self.mint.decimals)?;
 
         Ok(())
     }
