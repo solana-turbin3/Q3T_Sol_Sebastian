@@ -20,13 +20,15 @@ pub mod marketplace_class {
         ctx.accounts.add_whitelist(&ctx.bumps)
     }
 
-    pub fn list(ctx: Context<List>, price: u64, name: String) -> Result<()> {
-        ctx.accounts.create_list(&ctx.bumps, price, name)
+    pub fn list(ctx: Context<List>, _name: String, price: u64) -> Result<()> {
+        ctx.accounts.create_list(&ctx.bumps, price)
     }
 
-    pub fn purchase(_ctx: Context<Purchase>) -> Result<()> {
-
-        Ok(())
+    pub fn unlist(ctx: Context<Unlist>, name: String) -> Result<()> {
+        ctx.accounts.unlist(name)
     }
 
+    pub fn purchase(ctx: Context<Purchase>, name: String) -> Result<()> {
+        ctx.accounts.make_purchase(name)
+    }
 }
