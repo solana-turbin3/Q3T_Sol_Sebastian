@@ -13,7 +13,11 @@ pub struct InitializeFundMint<'info> {
     pub manager: Signer<'info>,
     #[account(
         mut,
-        seeds = [b"fund", fund_name.as_bytes(), manager.key().as_ref()],
+        seeds = [
+            b"fund", 
+            fund_name.as_bytes(), 
+            manager.key().as_ref()
+        ],
         bump = investment_fund.bump,
         constraint = investment_fund.manager == manager.key()
     )]
@@ -21,7 +25,10 @@ pub struct InitializeFundMint<'info> {
     #[account(
         init,
         payer = manager,
-        seeds = [b"shares", investment_fund.key().as_ref()],
+        seeds = [
+            b"shares", 
+            investment_fund.key().as_ref()
+        ],
         bump,
         mint::decimals = 6,
         mint::authority = investment_fund
@@ -48,12 +55,15 @@ impl<'info> InitializeFundMint<'info> {
     ) -> Result<()> {
         
         let fund = &mut self.investment_fund;
-        let initial_share_value =
-            (fund.assets_amount - fund.liabilities_amount) / initial_shares as f64;
+        let initial_share_value = fund.assets_amount
+            .checked_sub(fund.liabilities_amount)
+            .and_then(|net_assets| net_assets.checked_mul(1_000_000))
+            .and_then(|scaled_net_assets| scaled_net_assets.checked_div(initial_shares))
+            .unwrap();
 
         require!(
             fund.share_value == initial_share_value,
-            FundError::InvalidShareValue
+            FundError::InvalidInitialShareValue
         );
 
         fund.shares_mint_bump = Some(bumps.shares_mint);
@@ -65,10 +75,23 @@ impl<'info> InitializeFundMint<'info> {
             authority: self.investment_fund.to_account_info(),
         };
         let manager_key = self.manager.key();
-        let seeds = &[b"shares", fund_name.as_bytes(), manager_key.as_ref()];
+        let seeds = &[
+            b"shares", 
+            fund_name.as_bytes(), 
+            manager_key.as_ref(),
+            &[self.investment_fund.bump]
+        ];
         let signer_seeds = &[&seeds[..]];
-        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
-        mint_to(cpi_ctx, initial_shares * 10u64.pow(6))?;
+        let cpi_ctx = CpiContext::new_with_signer(
+            cpi_program, 
+            cpi_accounts, 
+            signer_seeds
+        );
+
+        mint_to(
+            cpi_ctx, 
+            initial_shares
+        )?;
 
         Ok(())
     }

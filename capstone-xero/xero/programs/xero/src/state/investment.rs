@@ -12,7 +12,7 @@ pub struct Investment {
 }
 
 impl Investment {
-    pub fn get_size(identifier: &str) -> usize {
+    pub fn get_space(identifier: &str) -> usize {
         return 8
             + 32
             + 1
@@ -20,6 +20,6 @@ impl Investment {
             + 8
             + 8
             + 8
-            + identifier.len()
+            + 4 + identifier.len()
     }
 }
