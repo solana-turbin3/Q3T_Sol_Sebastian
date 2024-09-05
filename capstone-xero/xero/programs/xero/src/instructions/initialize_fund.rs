@@ -7,18 +7,25 @@ use anchor_spl::{
 use crate::{errors::FundError, state::InvestmentFund};
 
 #[derive(Accounts)]
-#[instruction(fund_name: String, initial_shares: u64)]
+#[instruction(fund_name: String, stablecoin_pubkey: Pubkey)]
 pub struct InitializeFund<'info> {
     #[account(mut)]
     pub manager: Signer<'info>,
     #[account(
         init,
         payer = manager,
-        space = InvestmentFund::get_size(&fund_name),
-        seeds = [b"fund", fund_name.as_bytes(), manager.key().as_ref()],
+        space = InvestmentFund::get_space(&fund_name),
+        seeds = [
+            b"fund", 
+            fund_name.as_bytes(), 
+            manager.key().as_ref()
+        ],
         bump
     )]
     pub investment_fund: Box<Account<'info, InvestmentFund>>,
+    #[account(
+        constraint = stablecoin_mint.key() == stablecoin_pubkey
+    )]
     pub stablecoin_mint: Box<Account<'info, Mint>>,
     #[account(
         init,
@@ -37,17 +44,22 @@ impl<'info> InitializeFund<'info> {
         &mut self,
         bumps: &InitializeFundBumps,
         fund_name: String,
+        stablecoin_pubkey: Pubkey,
         initial_shares: u64,
-        assets_amount: f64,
-        liabilities_amount: f64,
+        assets_amount: u64,
+        liabilities_amount: u64,
     ) -> Result<()> {
         
         require!(
             fund_name.len() > 4 && fund_name.len() <= 32,
-            FundError::InvalidNameLength
+            FundError::InvalidStringLength
         );
 
-        let initial_share_value = (assets_amount - liabilities_amount) / initial_shares as f64;
+        let initial_share_value = assets_amount
+            .checked_sub(liabilities_amount)
+            .and_then(|net_assets| net_assets.checked_mul(1_000_000))
+            .and_then(|scaled_net_assets| scaled_net_assets.checked_div(initial_shares))
+            .unwrap();
 
         self.investment_fund.set_inner(InvestmentFund {
             bump: bumps.investment_fund,
@@ -56,10 +68,9 @@ impl<'info> InitializeFund<'info> {
             share_value: initial_share_value,
             shares_mint_bump: None,
             manager: self.manager.key(),
+            stablecoin_mint: stablecoin_pubkey,
             name: fund_name,
         });
-
-        // todo()! Set the minimum liquidity in the liquidity redemption vault.
 
         Ok(())
     }

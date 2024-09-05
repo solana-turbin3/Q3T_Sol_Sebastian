@@ -1,9 +1,11 @@
 use anchor_lang::prelude::*;
+
 mod state;
 mod instructions;
 mod errors;
 
 use instructions::*;
+use state::*;
 
 declare_id!("FpGgmLziQeTizXoyRm2ihaFrm1xtu5gx3M9XCK9ye3pU");
 
@@ -13,18 +15,20 @@ pub mod xero {
 
     pub fn initialize_fund(
         ctx: Context<InitializeFund>, 
-        name: String,
+        fund_name: String,
+        stablecoin_pubkey: Pubkey,
         initial_shares: u64,
-        assets_amount: f64,
-        liabilities_amount: f64
+        assets_amount: u64,
+        liabilities_amount: u64,
     ) -> Result<()> {
 
         ctx.accounts.initialize_fund(
             &ctx.bumps, 
-            name, 
+            fund_name, 
+            stablecoin_pubkey,
             initial_shares, 
             assets_amount, 
-            liabilities_amount
+            liabilities_amount,
         )?;
 
         Ok(())
@@ -60,6 +64,24 @@ pub mod xero {
             invested_amount, 
             interest_rate, 
             maturity_date
+        )?;
+
+        Ok(())
+    }
+
+    pub fn register_expense(
+        ctx: Context<RegisterExpense>,
+        _fund_name: String,
+        identifier: String,
+        expense_amount: u64,
+        category: ExpenseCategory,
+    ) -> Result<()> {
+
+        ctx.accounts.register_expense(
+            &ctx.bumps, 
+            identifier, 
+            expense_amount, 
+            category
         )?;
 
         Ok(())

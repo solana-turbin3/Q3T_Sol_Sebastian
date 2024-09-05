@@ -9,3 +9,6 @@ pub use initialize_fund_mint::*;
 
 pub mod register_expense;
 pub use register_expense::*;
+
+pub mod buy_shares;
+pub use buy_shares::*;
