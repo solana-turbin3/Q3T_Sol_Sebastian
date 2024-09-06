@@ -53,8 +53,8 @@ pub mod xero {
         ctx: Context<RegisterInvestment>,
         _fund_name: String,
         identifier: String,
-        invested_amount: f64,
-        interest_rate: f64,
+        invested_amount: u64,
+        interest_rate: u64,
         maturity_date: i64
     ) -> Result<()> {
 
@@ -83,6 +83,29 @@ pub mod xero {
             expense_amount, 
             category
         )?;
+
+        Ok(())
+    }
+
+    pub fn buy_shares(
+        ctx: Context<BuyShares>,
+        _fund_name: String,
+        manager: Pubkey,
+        invested_amount: u64,
+    ) -> Result<()> {
+
+        ctx.accounts.buy_shares(invested_amount, manager)?;
+
+        Ok(())
+    }
+
+    pub fn update_share_value(
+        ctx: Context<UpdateShareValue>,
+        _fund_name: String,
+        _investment_identifier: String
+    ) -> Result<()> {
+
+        ctx.accounts.update_share_value()?;
 
         Ok(())
     }

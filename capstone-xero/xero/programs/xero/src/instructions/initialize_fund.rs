@@ -59,7 +59,7 @@ impl<'info> InitializeFund<'info> {
             .checked_sub(liabilities_amount)
             .and_then(|net_assets| net_assets.checked_mul(1_000_000))
             .and_then(|scaled_net_assets| scaled_net_assets.checked_div(initial_shares))
-            .unwrap();
+            .ok_or(FundError::ArithmeticError)?;
 
         self.investment_fund.set_inner(InvestmentFund {
             bump: bumps.investment_fund,
