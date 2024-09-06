@@ -40,8 +40,8 @@ impl<'info> RegisterInvestment<'info> {
         &mut self,
         bumps: &RegisterInvestmentBumps,
         identifier: String,
-        invested_amount: f64,
-        interest_rate: f64,
+        invested_amount: u64,
+        interest_rate: u64,
         maturity_date: i64,
     ) -> Result<()> {
         

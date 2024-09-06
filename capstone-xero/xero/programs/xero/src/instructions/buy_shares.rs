@@ -1,7 +1,18 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{associated_token::AssociatedToken, token::{mint_to, transfer, Mint, MintTo, Token, TokenAccount, Transfer}};
+use anchor_spl::{
+    associated_token::AssociatedToken, 
+    token::{
+        mint_to, 
+        transfer, 
+        Mint, 
+        MintTo, 
+        Token, 
+        TokenAccount, 
+        Transfer
+    }
+};
 
-use crate::InvestmentFund;
+use crate::{errors::FundError, InvestmentFund};
 
 #[derive(Accounts)]
 #[instruction(fund_name: String, manager: Pubkey)]
@@ -63,7 +74,7 @@ impl<'info> BuyShares<'info> {
         let number_of_shares = invested_amount
             .checked_mul(1_000_000)
             .and_then(|amount| amount.checked_div(self.investment_fund.share_value))
-            .unwrap_or(0);
+            .ok_or(FundError::ArithmeticError)?;
 
         // we transfer the fund shares to the investor
         let cpi_program = self.token_program.to_account_info();
@@ -108,7 +119,7 @@ impl<'info> BuyShares<'info> {
         // update fund assets
         self.investment_fund.assets_amount = self.investment_fund.assets_amount
             .checked_add(invested_amount)
-            .unwrap();
+            .ok_or(FundError::ArithmeticError)?;
 
         Ok(())
     }

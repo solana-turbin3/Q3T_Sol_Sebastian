@@ -12,3 +12,6 @@ pub use register_expense::*;
 
 pub mod buy_shares;
 pub use buy_shares::*;
+
+pub mod update_share_value;
+pub use update_share_value::*;
