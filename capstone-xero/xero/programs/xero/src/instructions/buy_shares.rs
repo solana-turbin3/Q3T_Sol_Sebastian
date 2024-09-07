@@ -30,6 +30,7 @@ pub struct BuyShares<'info> {
     )]
     pub investment_fund: Box<Account<'info, InvestmentFund>>,
     #[account(
+        mut,
         seeds = [
             b"shares", 
             investment_fund.key().as_ref()
@@ -51,10 +52,12 @@ pub struct BuyShares<'info> {
     )]
     pub investor_stablecoin_ata: Box<Account<'info, TokenAccount>>,
     #[account(
+        mut,
         constraint = stablecoin_mint.key() == investment_fund.stablecoin_mint
     )]
     pub stablecoin_mint: Box<Account<'info, Mint>>,
     #[account(
+        mut,
         associated_token::mint = stablecoin_mint,
         associated_token::authority = investment_fund
     )]
@@ -71,9 +74,17 @@ impl<'info> BuyShares<'info> {
         manager: Pubkey
     ) -> Result<()> {
 
+        let shares_outstanding = self.shares_mint.supply;
+        let fund = &self.investment_fund;
+
+        let fund_share_value = fund.assets_amount.checked_sub(fund.liabilities_amount)
+            .and_then(|amount| amount.checked_mul(1_000_000))
+            .and_then(|scaled_amount| scaled_amount.checked_div(shares_outstanding))
+            .ok_or(FundError::ArithmeticError)?;
+
         let number_of_shares = invested_amount
             .checked_mul(1_000_000)
-            .and_then(|amount| amount.checked_div(self.investment_fund.share_value))
+            .and_then(|amount| amount.checked_div(fund_share_value))
             .ok_or(FundError::ArithmeticError)?;
 
         // we transfer the fund shares to the investor
@@ -84,7 +95,7 @@ impl<'info> BuyShares<'info> {
             authority: self.investment_fund.to_account_info()
         };
         let seeds = &[
-            b"shares", 
+            b"fund", 
             self.investment_fund.name.as_bytes(), 
             manager.as_ref(),
             &[self.investment_fund.bump]
@@ -110,7 +121,6 @@ impl<'info> BuyShares<'info> {
             cpi_program, 
             cpi_accounts
         );
-
         transfer(
             cpi_context, 
             invested_amount

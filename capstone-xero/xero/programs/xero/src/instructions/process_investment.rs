@@ -4,7 +4,7 @@ use crate::{errors::FundError, Investment, InvestmentFund};
 
 #[derive(Accounts)]
 #[instruction(fund_name: String, investment_identifier: String)]
-pub struct UpdateShareValue<'info> {
+pub struct ProcessInvestment<'info> {
     #[account(mut)]
     pub manager: Signer<'info>,
     #[account(
@@ -31,8 +31,8 @@ pub struct UpdateShareValue<'info> {
     pub system_program: Program<'info, System>
 }
 
-impl<'info> UpdateShareValue<'info> {
-    pub fn update_share_value(
+impl<'info> ProcessInvestment<'info> {
+    pub fn process_investment(
         &mut self,
     ) -> Result<()> {
 
