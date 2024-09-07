@@ -17,7 +17,6 @@ pub mod xero {
         ctx: Context<InitializeFund>, 
         fund_name: String,
         stablecoin_pubkey: Pubkey,
-        initial_shares: u64,
         assets_amount: u64,
         liabilities_amount: u64,
     ) -> Result<()> {
@@ -26,7 +25,6 @@ pub mod xero {
             &ctx.bumps, 
             fund_name, 
             stablecoin_pubkey,
-            initial_shares, 
             assets_amount, 
             liabilities_amount,
         )?;
@@ -99,13 +97,13 @@ pub mod xero {
         Ok(())
     }
 
-    pub fn update_share_value(
-        ctx: Context<UpdateShareValue>,
+    pub fn process_investment(
+        ctx: Context<ProcessInvestment>,
         _fund_name: String,
         _investment_identifier: String
     ) -> Result<()> {
 
-        ctx.accounts.update_share_value()?;
+        ctx.accounts.process_investment()?;
 
         Ok(())
     }

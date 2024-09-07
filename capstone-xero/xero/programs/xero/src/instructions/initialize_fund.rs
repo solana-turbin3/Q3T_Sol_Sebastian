@@ -45,7 +45,6 @@ impl<'info> InitializeFund<'info> {
         bumps: &InitializeFundBumps,
         fund_name: String,
         stablecoin_pubkey: Pubkey,
-        initial_shares: u64,
         assets_amount: u64,
         liabilities_amount: u64,
     ) -> Result<()> {
@@ -55,17 +54,10 @@ impl<'info> InitializeFund<'info> {
             FundError::InvalidStringLength
         );
 
-        let initial_share_value = assets_amount
-            .checked_sub(liabilities_amount)
-            .and_then(|net_assets| net_assets.checked_mul(1_000_000))
-            .and_then(|scaled_net_assets| scaled_net_assets.checked_div(initial_shares))
-            .ok_or(FundError::ArithmeticError)?;
-
         self.investment_fund.set_inner(InvestmentFund {
             bump: bumps.investment_fund,
             assets_amount,
             liabilities_amount,
-            share_value: initial_share_value,
             shares_mint_bump: None,
             manager: self.manager.key(),
             stablecoin_mint: stablecoin_pubkey,

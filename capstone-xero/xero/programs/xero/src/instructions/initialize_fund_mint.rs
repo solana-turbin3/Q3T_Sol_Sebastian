@@ -4,7 +4,7 @@ use anchor_spl::{
     token::{mint_to, Mint, MintTo, Token, TokenAccount},
 };
 
-use crate::{errors::FundError, state::InvestmentFund};
+use crate::state::InvestmentFund;
 
 #[derive(Accounts)]
 #[instruction(fund_name: String, initial_shares: u64)]
@@ -55,16 +55,6 @@ impl<'info> InitializeFundMint<'info> {
     ) -> Result<()> {
         
         let fund = &mut self.investment_fund;
-        let initial_share_value = fund.assets_amount
-            .checked_sub(fund.liabilities_amount)
-            .and_then(|net_assets| net_assets.checked_mul(1_000_000))
-            .and_then(|scaled_net_assets| scaled_net_assets.checked_div(initial_shares))
-            .ok_or(FundError::ArithmeticError)?;
-
-        require!(
-            fund.share_value == initial_share_value,
-            FundError::InvalidInitialShareValue
-        );
 
         fund.shares_mint_bump = Some(bumps.shares_mint);
 
@@ -76,7 +66,7 @@ impl<'info> InitializeFundMint<'info> {
         };
         let manager_key = self.manager.key();
         let seeds = &[
-            b"shares", 
+            b"fund", 
             fund_name.as_bytes(), 
             manager_key.as_ref(),
             &[self.investment_fund.bump]
