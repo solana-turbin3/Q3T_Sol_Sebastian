@@ -23,13 +23,13 @@ tomorrow.setHours(0, 0, 0, 0);
 
 const investment1 = {
   amount: 200_000 * scalingFactor,
-  interest_rate: 400,
+  interest_rate: 0.02 * scalingFactor,
   maturity_date: Math.floor(tomorrow.getTime() / 1000),
   identifier: "investment1",
 };
 const investment2 = {
   amount: 100_000 * scalingFactor,
-  interest_rate: 300,
+  interest_rate: 0.02 * scalingFactor,
   maturity_date: Math.floor(afterTomorrow.getTime() / 1000),
   identifier: "investment2",
 };
@@ -313,10 +313,11 @@ describe("xero", () => {
     const amountToInvest = 100_000 * scalingFactor;
     const fundDataAccountBefore = await program.account.investmentFund.fetch(investmentFundPda);
     const outstandingSharesBefore = (await token.getMint(
-      connection, 
-      sharesMint, 
-      "confirmed"
-    )).supply;
+        connection, 
+        sharesMint, 
+        "confirmed"
+        )).supply;
+
     const shareValueBefore = 
       ((Number(fundDataAccountBefore.assetsAmount) - Number(fundDataAccountBefore.liabilitiesAmount)) * scalingFactor)
       / Number(outstandingSharesBefore);
@@ -377,7 +378,7 @@ describe("xero", () => {
     const tx = await program.methods
       .processInvestment(
         fund.name,
-        investment1.identifier
+        investment2.identifier
       )
       .accounts({
         manager: manager.publicKey
@@ -392,13 +393,18 @@ describe("xero", () => {
     const fundAfter = await program.account.investmentFund.fetch(investmentFundPda);
     const interestAdded = fundAfter.assetsAmount.sub(fundBefore.assetsAmount);
 
-    const investment1DailyInterest = new anchor.BN(investment1.amount)
-    .mul(new anchor.BN(investment1.interest_rate))
-    .mul(new anchor.BN(1_000_000))
-    .div(new anchor.BN(30))
-    .div(new anchor.BN(1_000_000));
+    const investmentAmount = new anchor.BN(investment2.amount);
+    const interestRate = new anchor.BN(investment2.interest_rate);
+    const daysInMonth = new anchor.BN(30);
 
-    expect(Number(investment1DailyInterest)).to.eq(Number(interestAdded))
+    const calculatedInteredAdded = investmentAmount.mul(interestRate).div(daysInMonth);
+    const calculatedInteredAddedScaled = calculatedInteredAdded.div(new anchor.BN(scalingFactor));
+
+    
+    console.log("interest added:", (Number(interestAdded) / scalingFactor).toFixed(6));
+    console.log("calculated interest added", (Number(calculatedInteredAddedScaled) / scalingFactor).toFixed(6))
+
+    expect(Number(calculatedInteredAddedScaled)).to.eq(Number(interestAdded))
   })
 
 });
