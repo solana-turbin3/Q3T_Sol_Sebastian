@@ -36,17 +36,12 @@ impl<'info> ProcessInvestment<'info> {
         &mut self,
     ) -> Result<()> {
 
-        // calculate the generated revenue since last day
         let investment = &self.investment;
 
-        let daily_rate = investment.interest_rate
-            .checked_mul(1_000_000)
-            .and_then(|scaled_monthly_rate| scaled_monthly_rate.checked_div(30))
-            .ok_or(FundError::ArithmeticError)?;
-
         let daily_interest = investment.invested_amount
-            .checked_mul(daily_rate)
-            .and_then(|scaled_interest| scaled_interest.checked_div(1_000_000))
+            .checked_mul(investment.interest_rate)
+            .and_then(|scaled_interest| scaled_interest.checked_div(30)) // Now divide by 30
+            .and_then(|scaled_interest| scaled_interest.checked_div(1_000_000)) // Scale back by 1_000_000
             .ok_or(FundError::ArithmeticError)?;
 
         // add the revenue to the fund assets
