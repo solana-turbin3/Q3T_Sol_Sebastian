@@ -2,12 +2,12 @@ use anchor_lang::prelude::*;
 
 use crate::{
     errors::FundError,
-    state::{Expense, ExpenseCategory, InvestmentFund},
+    state::{Liability, LiabilityCategory, InvestmentFund},
 };
 
 #[derive(Accounts)]
 #[instruction(fund_name: String, identifier: String)]
-pub struct RegisterExpense<'info> {
+pub struct RegisterLiability<'info> {
     #[account(mut)]
     pub manager: Signer<'info>,
     #[account(
@@ -24,25 +24,25 @@ pub struct RegisterExpense<'info> {
     #[account(
         init,
         seeds = [
-            b"expense", 
+            b"liability", 
             identifier.as_bytes(), 
             investment_fund.key().as_ref()
         ],
         bump,
         payer = manager,
-        space = Expense::get_space(&identifier)
+        space = Liability::get_space(&identifier)
     )]
-    pub expense: Account<'info, Expense>,
+    pub liability: Account<'info, Liability>,
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> RegisterExpense<'info> {
-    pub fn register_expense(
+impl<'info> RegisterLiability<'info> {
+    pub fn register_liability(
         &mut self,
-        bumps: &RegisterExpenseBumps,
+        bumps: &RegisterLiabilityBumps,
         identifier: String,
-        expense_amount: u64,
-        category: ExpenseCategory,
+        liability_amount: u64,
+        category: LiabilityCategory,
     ) -> Result<()> {
 
         require!(
@@ -52,16 +52,16 @@ impl<'info> RegisterExpense<'info> {
 
         let clock = Clock::get()?;
 
-        self.expense.set_inner(Expense {
-            bump: bumps.expense,
+        self.liability.set_inner(Liability {
+            bump: bumps.liability,
             investment_fund: self.investment_fund.key(),
-            expense_amount,
+            liability_amount,
             creation_date: clock.unix_timestamp,
             category,
             identifier,
         });
 
-        self.investment_fund.liabilities_amount += expense_amount;
+        self.investment_fund.liabilities_amount += liability_amount;
 
         Ok(())
     }

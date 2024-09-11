@@ -34,15 +34,15 @@ const investment2 = {
   identifier: "investment2",
 };
 
-const expense1 = {
+const liability1 = {
   amount: 45_000 * scalingFactor,
-  identifier: "expense1",
-  category: { fundFees: {} }
+  identifier: "liability1",
+  category: { accountsPayable: {} }
 };
-const expense2 = {
+const liability2 = {
   amount: 55_000 * scalingFactor,
-  identifier: "expense2",
-  category: { legalFees: {} }
+  identifier: "liability2",
+  category: { wagesPayable: {} }
 };
 
 describe("xero", () => {
@@ -89,22 +89,23 @@ describe("xero", () => {
     ],
     program.programId
   );
-  const [expense1PDA] = anchor.web3.PublicKey.findProgramAddressSync(
+  const [liability1PDA] = anchor.web3.PublicKey.findProgramAddressSync(
     [
-      Buffer.from("expense"),
-      Buffer.from(expense1.identifier),
+      Buffer.from("liability"),
+      Buffer.from(liability1.identifier),
       investmentFundPda.toBuffer()
     ],
     program.programId
   );
-  const [expense2PDA] = anchor.web3.PublicKey.findProgramAddressSync(
+  const [liability2PDA] = anchor.web3.PublicKey.findProgramAddressSync(
     [
-      Buffer.from("expense"),
-      Buffer.from(expense2.identifier),
+      Buffer.from("liability"),
+      Buffer.from(liability2.identifier),
       investmentFundPda.toBuffer()
     ],
     program.programId
   );
+
   const managerSharesATA = token.getAssociatedTokenAddressSync(
     sharesMint,
     manager.publicKey,
@@ -262,11 +263,11 @@ describe("xero", () => {
 
   it("Registers expenses", async () => {
     const tx1 = await program.methods
-      .registerExpense(
+      .registerLiability(
         fund.name,
-        expense1.identifier,
-        new anchor.BN(expense1.amount),
-        expense1.category
+        liability1.identifier,
+        new anchor.BN(liability1.amount),
+        liability1.category
       )
       .accounts({
         manager: manager.publicKey,
@@ -279,11 +280,11 @@ describe("xero", () => {
     connection.confirmTransaction(tx1, "confirmed");
 
     const tx2 = await program.methods
-      .registerExpense(
+      .registerLiability(
         fund.name,
-        expense2.identifier,
-        new anchor.BN(expense2.amount),
-        expense2.category
+        liability2.identifier,
+        new anchor.BN(liability2.amount),
+        liability2.category
       )
       .accounts({
         manager: manager.publicKey,
@@ -295,18 +296,18 @@ describe("xero", () => {
 
     connection.confirmTransaction(tx2, "confirmed");
 
-    const expense1Data = await program.account.expense.fetch(expense1PDA);
-    expect(expense1Data.identifier).to.eq(expense1.identifier);
-    expect(Number(expense1Data.expenseAmount)).to.eq(expense1.amount);
-    expect(expense1Data.category).to.eql({ fundFees: {} });
+    const liability1Data = await program.account.liability.fetch(liability1PDA);
+    expect(liability1Data.identifier).to.eq(liability1.identifier);
+    expect(Number(liability1Data.liabilityAmount)).to.eq(liability1.amount);
+    expect(liability1Data.category).to.eql({ accountsPayable: {} });
 
-    const expense2Data = await program.account.expense.fetch(expense2PDA);
-    expect(expense2Data.identifier).to.eq(expense2.identifier);
-    expect(Number(expense2Data.expenseAmount)).to.eq(expense2.amount);
-    expect(expense2Data.category).to.eql({ legalFees: {} });
+    const liability2Data = await program.account.liability.fetch(liability2PDA);
+    expect(liability2Data.identifier).to.eq(liability2.identifier);
+    expect(Number(liability2Data.liabilityAmount)).to.eq(liability2.amount);
+    expect(liability2Data.category).to.eql({ wagesPayable: {} });
 
     const fundDataAccount = await program.account.investmentFund.fetch(investmentFundPda);
-    expect(Number(fundDataAccount.liabilitiesAmount)).to.eq(0 + expense1.amount + expense2.amount);
+    expect(Number(fundDataAccount.liabilitiesAmount)).to.eq(0 + liability1.amount + liability2.amount);
   });
 
   it("Sells share tokens to the investor at correct price, fund vault gets the stablecoin invested amount", async () => {

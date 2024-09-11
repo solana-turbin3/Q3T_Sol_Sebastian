@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 
+use crate::errors::FundError;
+
 #[account]
 pub struct InvestmentFund {
     pub bump: u8,
@@ -21,5 +23,15 @@ impl InvestmentFund {
             + 32
             + 32
             + 4 + name.len()
+    }
+
+    pub fn get_share_value(
+        &self, 
+        shares_outstanding: u64
+    ) -> Result<u64> {
+        self.assets_amount.checked_sub(self.liabilities_amount)
+            .and_then(|amount| amount.checked_mul(1_000_000))
+            .and_then(|amount| amount.checked_div(shares_outstanding))
+            .ok_or(FundError::ArithmeticError.into())
     }
 }

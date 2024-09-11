@@ -75,12 +75,8 @@ impl<'info> BuyShares<'info> {
     ) -> Result<()> {
 
         let shares_outstanding = self.shares_mint.supply;
-        let fund = &self.investment_fund;
 
-        let fund_share_value = fund.assets_amount.checked_sub(fund.liabilities_amount)
-            .and_then(|amount| amount.checked_mul(1_000_000))
-            .and_then(|scaled_amount| scaled_amount.checked_div(shares_outstanding))
-            .ok_or(FundError::ArithmeticError)?;
+        let fund_share_value = self.investment_fund.get_share_value(shares_outstanding)?;
 
         let number_of_shares = invested_amount
             .checked_mul(1_000_000)
