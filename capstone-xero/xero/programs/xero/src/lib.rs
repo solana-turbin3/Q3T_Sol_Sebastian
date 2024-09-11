@@ -4,7 +4,7 @@ mod state;
 mod instructions;
 mod errors;
 
-use instructions::*;
+use instructions::{investor_instructions::*, manager_instructions::*};
 use state::*;
 
 declare_id!("FpGgmLziQeTizXoyRm2ihaFrm1xtu5gx3M9XCK9ye3pU");
@@ -67,18 +67,18 @@ pub mod xero {
         Ok(())
     }
 
-    pub fn register_expense(
-        ctx: Context<RegisterExpense>,
+    pub fn register_liability(
+        ctx: Context<RegisterLiability>,
         _fund_name: String,
         identifier: String,
-        expense_amount: u64,
-        category: ExpenseCategory,
+        liability_amount: u64,
+        category: LiabilityCategory,
     ) -> Result<()> {
 
-        ctx.accounts.register_expense(
+        ctx.accounts.register_liability(
             &ctx.bumps, 
             identifier, 
-            expense_amount, 
+            liability_amount, 
             category
         )?;
 
@@ -104,6 +104,21 @@ pub mod xero {
     ) -> Result<()> {
 
         ctx.accounts.process_investment()?;
+
+        Ok(())
+    }
+
+    pub fn redeem_shares(
+        ctx: Context<RedeemShares>,
+        _fund_name: String,
+        _manager: Pubkey,
+        shares_to_redeem: u64
+    ) -> Result<()> {
+
+        ctx.accounts.redeem_shares(
+            &ctx.bumps, 
+            shares_to_redeem
+        )?;
 
         Ok(())
     }

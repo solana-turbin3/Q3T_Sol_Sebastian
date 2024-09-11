@@ -1,23 +1,25 @@
 use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq)]
-pub enum ExpenseCategory {
-    LegalFees,
-    FundFees,
-    OtherFees
+pub enum LiabilityCategory {
+    AccountsPayable,
+    LoansPayable,
+    WagesPayable,
+    TaxesPayable,
+    Other
 }
 
 #[account]
-pub struct Expense {
+pub struct Liability {
     pub bump: u8,
     pub investment_fund: Pubkey,
-    pub expense_amount: u64,
+    pub liability_amount: u64,
     pub creation_date: i64,
-    pub category: ExpenseCategory,
+    pub category: LiabilityCategory,
     pub identifier: String,
 }
 
-impl Expense {
+impl Liability {
     pub fn get_space(identifier: &str) -> usize {
         return 8
             + 1
