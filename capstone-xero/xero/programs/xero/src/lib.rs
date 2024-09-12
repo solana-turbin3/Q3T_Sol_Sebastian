@@ -92,7 +92,10 @@ pub mod xero {
         invested_amount: u64,
     ) -> Result<()> {
 
-        ctx.accounts.buy_shares(invested_amount, manager)?;
+        ctx.accounts.buy_shares(
+            invested_amount, 
+            manager
+        )?;
 
         Ok(())
     }
@@ -119,6 +122,16 @@ pub mod xero {
             &ctx.bumps, 
             shares_to_redeem
         )?;
+
+        Ok(())
+    }
+
+    pub fn process_share_redemption(
+        ctx: Context<ProcessShareRedemption>,
+        _fund_name: String
+    ) -> Result<()> {
+
+        ctx.accounts.process_share_redemption()?;
 
         Ok(())
     }

@@ -48,15 +48,16 @@ pub struct RedeemShares<'info> {
     )]
     pub shares_mint: Box<Account<'info, Mint>>,
     #[account(
+        mut,
         associated_token::mint = shares_mint,
         associated_token::authority = investor
     )]
     pub investor_fund_ata: Box<Account<'info, TokenAccount>>,
     #[account(
-        init,
-        payer = investor,
+        mut,
         associated_token::mint = shares_mint,
-        associated_token::authority = investment_fund
+        associated_token::authority = investment_fund,
+        constraint = redemption_vault.key() == investment_fund.redemption_vault.unwrap()
     )]
     pub redemption_vault: Box<Account<'info, TokenAccount>>,
     pub system_program: Program<'info, System>,
@@ -79,7 +80,6 @@ impl<'info> RedeemShares<'info> {
             bump: bumps.share_redemption,
             investor: self.investor.key(),
             investment_fund: self.investment_fund.key(),
-            redemption_vault: self.redemption_vault.key(),
             shares_to_redeem,
             creation_date: Clock::get()?.unix_timestamp,
             share_value

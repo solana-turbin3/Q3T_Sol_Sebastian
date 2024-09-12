@@ -59,6 +59,7 @@ impl<'info> InitializeFund<'info> {
             assets_amount,
             liabilities_amount,
             shares_mint_bump: None,
+            redemption_vault: None,
             manager: self.manager.key(),
             stablecoin_mint: stablecoin_pubkey,
             name: fund_name,
