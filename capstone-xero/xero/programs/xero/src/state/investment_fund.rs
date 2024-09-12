@@ -8,6 +8,7 @@ pub struct InvestmentFund {
     pub assets_amount: u64,
     pub liabilities_amount: u64,
     pub shares_mint_bump: Option<u8>,
+    pub redemption_vault: Option<Pubkey>,
     pub manager: Pubkey,
     pub stablecoin_mint: Pubkey,
     pub name: String,
@@ -20,6 +21,7 @@ impl InvestmentFund {
             + 8
             + 8
             + 1 + 1
+            + 1 + 32
             + 32
             + 32
             + 4 + name.len()

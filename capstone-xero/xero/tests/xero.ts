@@ -45,6 +45,8 @@ const liability2 = {
   category: { wagesPayable: {} }
 };
 
+const initialStablecoinVaultBalance = 250_000 * scalingFactor;
+
 describe("xero", () => {
   const provider = anchor.AnchorProvider.env();
   const connection = provider.connection;
@@ -55,9 +57,10 @@ describe("xero", () => {
   const manager = anchor.web3.Keypair.generate();
   const investor = anchor.web3.Keypair.generate();
   
+  let fundStablecoinVault: anchor.web3.PublicKey;
   let investorStablecoinATA: token.Account;
   let stablecoinMint: anchor.web3.PublicKey;
-  const [investmentFundPda] = anchor.web3.PublicKey.findProgramAddressSync(
+  const [investmentFundPDA] = anchor.web3.PublicKey.findProgramAddressSync(
     [
         Buffer.from("fund"),
         Buffer.from(fund.name),
@@ -68,16 +71,15 @@ describe("xero", () => {
   const [sharesMint] = anchor.web3.PublicKey.findProgramAddressSync(
     [
         Buffer.from("shares"),
-        investmentFundPda.toBuffer()
+        investmentFundPDA.toBuffer()
     ],
     program.programId
   );
-  let fundStablecoinVault: anchor.web3.PublicKey;
   const [investment1PDA] = anchor.web3.PublicKey.findProgramAddressSync(
     [
       Buffer.from("investment"),
       Buffer.from(investment1.identifier),
-      investmentFundPda.toBuffer(),
+      investmentFundPDA.toBuffer(),
     ],
     program.programId
   );
@@ -85,7 +87,7 @@ describe("xero", () => {
     [
       Buffer.from("investment"),
       Buffer.from(investment2.identifier),
-      investmentFundPda.toBuffer(),
+      investmentFundPDA.toBuffer(),
     ],
     program.programId
   );
@@ -93,7 +95,7 @@ describe("xero", () => {
     [
       Buffer.from("liability"),
       Buffer.from(liability1.identifier),
-      investmentFundPda.toBuffer()
+      investmentFundPDA.toBuffer()
     ],
     program.programId
   );
@@ -101,7 +103,7 @@ describe("xero", () => {
     [
       Buffer.from("liability"),
       Buffer.from(liability2.identifier),
-      investmentFundPda.toBuffer()
+      investmentFundPDA.toBuffer()
     ],
     program.programId
   );
@@ -113,6 +115,20 @@ describe("xero", () => {
   const investorFundATA = token.getAssociatedTokenAddressSync(
     sharesMint,
     investor.publicKey
+  );
+  const redemptionVaultATA = token.getAssociatedTokenAddressSync(
+    sharesMint,
+    investmentFundPDA,
+    true
+  );
+
+  const [investorRedemptionPDA] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+        Buffer.from("redemption"),
+        investmentFundPDA.toBuffer(),
+        investor.publicKey.toBuffer()
+    ],
+    program.programId
   );
 
   before(async () => {
@@ -153,7 +169,7 @@ describe("xero", () => {
 
     fundStablecoinVault = token.getAssociatedTokenAddressSync(
       stablecoinMint,
-      investmentFundPda,
+      investmentFundPDA,
       true
     );
   })
@@ -202,13 +218,31 @@ describe("xero", () => {
         "confirmed"
     );
 
-    const fundDataAccount = await program.account.investmentFund.fetch(investmentFundPda, "confirmed");
+    const fundDataAccount = await program.account.investmentFund.fetch(investmentFundPDA, "confirmed");
     expect(Number(fundDataAccount.assetsAmount)).to.eq(fund.initialAssets);
     expect(Number(fundDataAccount.liabilitiesAmount)).to.eq(fund.initialLiabilities);
     expect(fundDataAccount.manager.toString()).to.eq(manager.publicKey.toString());
     expect((Number(fundDataAccount.assetsAmount) - Number(fundDataAccount.liabilitiesAmount)) / ((Number(fundMint.supply)))).to.equal(1);
 
     expect(Number(managerSharesAccount.amount)).to.eq(fund.initialShares);
+
+    const tx3 = await token.mintTo(
+        connection,
+        manager,
+        stablecoinMint,
+        fundStablecoinVault,
+        manager,
+        initialStablecoinVaultBalance
+    );
+    await connection.confirmTransaction(tx3, "confirmed");
+    const fundStablecoinBalance = (await token.getAccount(
+        connection,
+        fundStablecoinVault,
+        "confirmed"
+    )).amount;
+
+    expect(Number(fundStablecoinBalance)).to.eq(initialStablecoinVaultBalance)
+
   });
 
   it("Registers investments", async () => {
@@ -250,13 +284,13 @@ describe("xero", () => {
 
     const investment1Data = await program.account.investment.fetch(investment1PDA);
     expect(investment1Data.identifier).to.eq(investment1.identifier);
-    expect(investment1Data.investmentFund.toString()).to.eq(investmentFundPda.toString());
+    expect(investment1Data.investmentFund.toString()).to.eq(investmentFundPDA.toString());
     expect(Number(investment1Data.investedAmount)).to.eq(investment1.amount);
     expect(Number(investment1Data.interestRate)).to.eq(investment1.interest_rate);
 
     const investment2Data = await program.account.investment.fetch(investment2PDA);
     expect(investment2Data.identifier).to.eq(investment2.identifier);
-    expect(investment2Data.investmentFund.toString()).to.eq(investmentFundPda.toString());
+    expect(investment2Data.investmentFund.toString()).to.eq(investmentFundPDA.toString());
     expect(Number(investment2Data.investedAmount)).to.eq(investment2.amount);
     expect(Number(investment2Data.interestRate)).to.eq(investment2.interest_rate);
   });
@@ -306,13 +340,13 @@ describe("xero", () => {
     expect(Number(liability2Data.liabilityAmount)).to.eq(liability2.amount);
     expect(liability2Data.category).to.eql({ wagesPayable: {} });
 
-    const fundDataAccount = await program.account.investmentFund.fetch(investmentFundPda);
+    const fundDataAccount = await program.account.investmentFund.fetch(investmentFundPDA);
     expect(Number(fundDataAccount.liabilitiesAmount)).to.eq(0 + liability1.amount + liability2.amount);
   });
 
   it("Sells share tokens to the investor at correct price, fund vault gets the stablecoin invested amount", async () => {
     const amountToInvest = 100_000 * scalingFactor;
-    const fundDataAccountBefore = await program.account.investmentFund.fetch(investmentFundPda);
+    const fundDataAccountBefore = await program.account.investmentFund.fetch(investmentFundPDA);
     const outstandingSharesBefore = (await token.getMint(
         connection, 
         sharesMint, 
@@ -334,7 +368,7 @@ describe("xero", () => {
       .accountsStrict({
         investor: investor.publicKey,
         sharesMint: sharesMint,
-        investmentFund: investmentFundPda,
+        investmentFund: investmentFundPDA,
         investorFundAta: investorFundATA,
         investorStablecoinAta: investorStablecoinATA.address,
         stablecoinMint: stablecoinMint,
@@ -353,7 +387,7 @@ describe("xero", () => {
     const investorShareBalance = (await token.getAccount(connection, investorFundATA, "confirmed")).amount;
     expect(Number(investorShareBalance) / scalingFactor).to.eq(Number(sharesToReceive.toFixed(6)))
 
-    const fundDataAccountAfter = await program.account.investmentFund.fetch(investmentFundPda);
+    const fundDataAccountAfter = await program.account.investmentFund.fetch(investmentFundPDA);
     const outstandingSharesAfter = (await token.getMint(
       connection, 
       sharesMint, 
@@ -370,11 +404,11 @@ describe("xero", () => {
     expect(Number(shareValueAfter.toFixed(6))).to.eq(Number(shareValueBefore.toFixed(6)));
     
     const stablecoinVaultBalance = (await token.getAccount(connection, fundStablecoinVault, "confirmed")).amount;
-    expect(Number(stablecoinVaultBalance)).to.eq(amountToInvest);
+    expect(Number(stablecoinVaultBalance)).to.eq(amountToInvest + initialStablecoinVaultBalance);
   });
 
   it("Processes an investment and increases the funds assets accordingly", async () => {
-    const fundBefore = await program.account.investmentFund.fetch(investmentFundPda);
+    const fundBefore = await program.account.investmentFund.fetch(investmentFundPDA);
 
     const tx = await program.methods
       .processInvestment(
@@ -391,7 +425,7 @@ describe("xero", () => {
 
     await connection.confirmTransaction(tx, "confirmed");
 
-    const fundAfter = await program.account.investmentFund.fetch(investmentFundPda);
+    const fundAfter = await program.account.investmentFund.fetch(investmentFundPDA);
     const interestAdded = fundAfter.assetsAmount.sub(fundBefore.assetsAmount);
 
     const investmentAmount = new anchor.BN(investment2.amount);
@@ -407,5 +441,110 @@ describe("xero", () => {
 
     expect(Number(calculatedInteredAddedScaled)).to.eq(Number(interestAdded))
   })
+
+  it("creates a share redemption request", async () => {
+    const fundDataAccountBefore = await program.account.investmentFund.fetch(investmentFundPDA);
+    const userSharesBefore = (await token.getAccount(connection, investorFundATA, "confirmed")).amount;
+    const outstandingSharesBefore = (await token.getMint(
+        connection, 
+        sharesMint, 
+        "confirmed"
+        )).supply;
+
+    const shareValueBefore = ((fundDataAccountBefore.assetsAmount.sub(fundDataAccountBefore.liabilitiesAmount))
+        .mul(new anchor.BN(scalingFactor)).div(new anchor.BN(Number(outstandingSharesBefore))))
+    
+    const tx = await program.methods
+        .redeemShares(
+            fund.name,
+            manager.publicKey,
+            new anchor.BN(Number(userSharesBefore))
+        )
+        .accounts({
+            investor: investor.publicKey
+        })
+        .signers([
+            investor
+        ])
+        .rpc();
+
+    await connection.confirmTransaction(tx, "confirmed");
+
+    const userSharesAfter = (await token.getAccount(connection, investorFundATA, "confirmed")).amount;
+    const redemptionVaultSharesAfter = (await token.getAccount(connection, redemptionVaultATA, "confirmed")).amount;
+
+    expect(Number(userSharesAfter)).to.eq(0);
+    expect(Number(redemptionVaultSharesAfter)).to.eq(Number(userSharesBefore));
+
+    const redemptionData = await program.account.shareRedemption.fetch(investorRedemptionPDA);
+
+    expect(redemptionData.investmentFund.toString()).to.eq(investmentFundPDA.toString());
+    expect(redemptionData.investor.toString()).to.eq(investor.publicKey.toString());
+    expect(Number(redemptionData.sharesToRedeem)).to.eq(Number(userSharesBefore));
+    expect(Number(redemptionData.shareValue)).to.eq(Number(shareValueBefore))
+  });
+
+  it("processes the share redemption request", async () => {
+
+    const redemptionData = await program.account.shareRedemption.fetch(investorRedemptionPDA);
+
+    const outstandingSharesBefore = (await token.getMint(
+        connection, 
+        sharesMint, 
+        "confirmed"
+        )).supply;
+
+    const sharesToBurn = redemptionData.sharesToRedeem;
+
+    const investorStablecoinBalanceBefore = (await token.getAccount(
+        connection,
+        investorStablecoinATA.address,
+        "confirmed"
+    )).amount;
+
+    const stablecoinAmountToReceive = (redemptionData.shareValue.mul(redemptionData.sharesToRedeem)).div(new anchor.BN(scalingFactor));
+
+
+    const tx = await program.methods
+        .processShareRedemption(
+            fund.name
+        )
+        .accountsStrict({
+            investor: investor.publicKey,
+            manager: manager.publicKey,
+            investmentFund: investmentFundPDA,
+            shareRedemption: investorRedemptionPDA,
+            sharesMint: sharesMint,
+            redemptionVault: redemptionVaultATA,
+            investorStablecoinAta: investorStablecoinATA.address,
+            stablecoinMint: stablecoinMint,
+            fundStablecoinVault: fundStablecoinVault,
+            systemProgram: anchor.web3.SystemProgram.programId,
+            tokenProgram: token.TOKEN_PROGRAM_ID,
+            associatedTokenProgram: token.ASSOCIATED_TOKEN_PROGRAM_ID
+        })
+        .signers([
+            manager
+        ])
+        .rpc()
+
+    await connection.confirmTransaction(tx, "confirmed");
+
+    const outstandingSharesAfter = (await token.getMint(
+        connection, 
+        sharesMint, 
+        "confirmed"
+        )).supply;
+
+    const investorStablecoinBalanceAfter = (await token.getAccount(
+            connection,
+            investorStablecoinATA.address,
+            "confirmed"
+        )).amount;
+
+    expect(Number(outstandingSharesAfter)).to.eq(Number(outstandingSharesBefore) - Number(sharesToBurn));
+    expect(Number(investorStablecoinBalanceAfter)).to.eq(Number(investorStablecoinBalanceBefore) + Number(stablecoinAmountToReceive))
+    
+  });
 
 });

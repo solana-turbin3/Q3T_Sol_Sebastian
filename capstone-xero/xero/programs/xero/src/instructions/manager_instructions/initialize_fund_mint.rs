@@ -41,6 +41,13 @@ pub struct InitializeFundMint<'info> {
         associated_token::authority = manager
     )]
     pub manager_shares_ata: Box<Account<'info, TokenAccount>>,
+    #[account(
+        init,
+        payer = manager,
+        associated_token::mint = shares_mint,
+        associated_token::authority = investment_fund
+    )]
+    pub shares_redemption_vault: Box<Account<'info, TokenAccount>>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -57,6 +64,7 @@ impl<'info> InitializeFundMint<'info> {
         let fund = &mut self.investment_fund;
 
         fund.shares_mint_bump = Some(bumps.shares_mint);
+        fund.redemption_vault = Some(self.shares_redemption_vault.key());
 
         let cpi_program = self.token_program.to_account_info();
         let cpi_accounts = MintTo {
