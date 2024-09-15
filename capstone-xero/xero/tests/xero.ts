@@ -534,7 +534,7 @@ describe("xero", () => {
         connection, 
         sharesMint, 
         "confirmed"
-        )).supply;
+    )).supply;
 
     const investorStablecoinBalanceAfter = (await token.getAccount(
             connection,
@@ -545,6 +545,47 @@ describe("xero", () => {
     expect(Number(outstandingSharesAfter)).to.eq(Number(outstandingSharesBefore) - Number(sharesToBurn));
     expect(Number(investorStablecoinBalanceAfter)).to.eq(Number(investorStablecoinBalanceBefore) + Number(stablecoinAmountToReceive))
     
+  });
+
+  it("creates a share redemption and allows the investor to cancel it", async () => {
+
+    const userSharesBefore = (await token.getAccount(connection, investorFundATA, "confirmed")).amount;
+    const tx1 = await program.methods
+        .redeemShares(
+            fund.name,
+            manager.publicKey,
+            new anchor.BN(Number(userSharesBefore))
+        )
+        .accounts({
+            investor: investor.publicKey
+        })
+        .signers([
+            investor
+        ])
+        .rpc();
+
+    await connection.confirmTransaction(tx1, "confirmed");
+
+    const tx2 = await program.methods
+        .cancelRedeemShares(
+            fund.name,
+            manager.publicKey
+        )
+        .accounts({
+            investor: investor.publicKey
+        })
+        .signers([
+            investor
+        ])
+        .rpc()
+
+    await connection.confirmTransaction(tx2, "confirmed");
+
+    const userSharesAfter = (await token.getAccount(connection, investorFundATA, "confirmed")).amount;
+
+    const redeemAccounts = await program.account.shareRedemption.all();
+    expect(redeemAccounts.length).to.eq(0);
+    expect(Number(userSharesBefore)).to.eq(Number(userSharesAfter));
   });
 
 });
