@@ -135,4 +135,15 @@ pub mod xero {
 
         Ok(())
     }
+
+    pub fn cancel_redeem_shares(
+        ctx: Context<CancelRedeemShares>,
+        _fund_name: String,
+        manager: Pubkey
+    ) -> Result<()> {
+
+        ctx.accounts.cancel_redeem_shares(manager)?;
+
+        Ok(())
+    }
 }

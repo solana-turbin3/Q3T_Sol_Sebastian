@@ -1,20 +1,11 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{
-    associated_token::AssociatedToken, 
-    token::{
-        Mint, 
-        Token, 
-        TokenAccount, 
-        Transfer, 
-        transfer
-    }
-};
+use anchor_spl::{associated_token::AssociatedToken, token::{transfer, Mint, Token, TokenAccount, Transfer}};
 
 use crate::{InvestmentFund, ShareRedemption};
 
 #[derive(Accounts)]
 #[instruction(fund_name: String, manager: Pubkey)]
-pub struct RedeemShares<'info> {
+pub struct CancelRedeemShares<'info> {
     #[account(mut)]
     pub investor: Signer<'info>,
     #[account(
@@ -27,15 +18,15 @@ pub struct RedeemShares<'info> {
     )]
     pub investment_fund: Box<Account<'info, InvestmentFund>>,
     #[account(
-        init,
+        mut,
+        close = investor,
         seeds = [
             b"redemption", 
             investment_fund.key().as_ref(), 
             investor.key().as_ref(), 
         ],
-        bump,
-        payer = investor,
-        space = ShareRedemption::get_space(),
+        bump = share_redemption.bump,
+
     )]
     pub share_redemption: Box<Account<'info, ShareRedemption>>,
     #[account(
@@ -64,35 +55,33 @@ pub struct RedeemShares<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
-impl<'info> RedeemShares<'info> {
-    pub fn redeem_shares(
+impl<'info> CancelRedeemShares<'info> {
+    pub fn cancel_redeem_shares(
         &mut self,
-        bumps: &RedeemSharesBumps,
-        shares_to_redeem: u64
+        manager: Pubkey
     ) -> Result<()> {
 
-        let shares_outstanding = self.shares_mint.supply;
-
-        let share_value = self.investment_fund.get_share_value(shares_outstanding)?;
-
-        self.share_redemption.set_inner(ShareRedemption {
-            bump: bumps.share_redemption,
-            investor: self.investor.key(),
-            investment_fund: self.investment_fund.key(),
-            shares_to_redeem,
-            creation_date: Clock::get()?.unix_timestamp,
-            share_value
-        });
+        let seeds = &[
+            b"fund", 
+            self.investment_fund.name.as_bytes(), 
+            manager.as_ref(),
+            &[self.investment_fund.bump]
+        ];
+        let signer_seeds = &[&seeds[..]];
 
         let cpi_program = self.token_program.to_account_info();
         let cpi_accounts = Transfer {
-            from: self.investor_fund_ata.to_account_info(),
-            to: self.redemption_vault.to_account_info(),
-            authority: self.investor.to_account_info(),
+            from: self.redemption_vault.to_account_info(),
+            to: self.investor_fund_ata.to_account_info(),
+            authority: self.investment_fund.to_account_info(),
         };
-        let cpi_context = CpiContext::new(cpi_program, cpi_accounts);
+        let cpi_context = CpiContext::new_with_signer(
+            cpi_program, 
+            cpi_accounts,
+            signer_seeds
+        );
 
-        transfer(cpi_context, shares_to_redeem)?;
+        transfer(cpi_context, self.share_redemption.shares_to_redeem)?;
 
         Ok(())
     }
