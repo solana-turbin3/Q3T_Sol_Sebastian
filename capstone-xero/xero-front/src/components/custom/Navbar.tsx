@@ -10,6 +10,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { UserRole } from "@/lib/types/user-role";
+import { ModeToggle } from "./ModeToggle";
 
 const WalletMultiButtonDynamic = dynamic(
     async () => (await import('@solana/wallet-adapter-react-ui')).WalletMultiButton,
@@ -38,7 +39,10 @@ export default function Navbar({
                     </SelectContent>
                 </Select>
 
-                <WalletMultiButtonDynamic />
+                <div className="flex flex-row gap-x-4 justify-center items-center">
+                    <ModeToggle />
+                    <WalletMultiButtonDynamic />
+                </div>
             </div>
             <Separator />
         </header>

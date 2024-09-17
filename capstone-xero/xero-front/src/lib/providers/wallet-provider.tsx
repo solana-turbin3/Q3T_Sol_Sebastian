@@ -15,8 +15,8 @@ const WalletContextProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const wallets = useMemo(() => [], []);
   
     return (
-        <ConnectionProvider endpoint={endpoint} config={{commitment: "finalized"}}>
-            <WalletProvider wallets={wallets}>
+        <ConnectionProvider endpoint={endpoint} config={{commitment: "confirmed"}}>
+            <WalletProvider wallets={wallets} autoConnect>
                 <WalletModalProvider>
                     {children}
                 </WalletModalProvider>
