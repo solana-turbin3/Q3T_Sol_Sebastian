@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import WalletContextProvider from "@/lib/providers/wallet-provider";
 import { ThemeProvider } from "@/lib/providers/theme-provider";
+import Head from "next/head";
 
 const geistSans = localFont({
     src: "./fonts/GeistVF.woff",
@@ -26,7 +27,10 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        <html>
+            <Head>
+                <meta lang="en" />
+            </Head>
             <body
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >

@@ -20,7 +20,7 @@ export default function ManagerFunds() {
     return (
         <div className="grid grid-cols-3 gap-4">
             {funds.map(fund => (
-                <FundCardManager fund={fund} />
+                <FundCardManager key={fund.name} fund={fund} />
             ))}
         </div>
     )

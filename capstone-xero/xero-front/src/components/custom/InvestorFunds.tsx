@@ -20,7 +20,7 @@ export default function InvestorFunds() {
     return (
         <div className="grid grid-cols-4 gap-4">
             {funds.map(fund => (
-                <FundCardInvestor fund={fund} />
+                <FundCardInvestor key={fund.name} fund={fund} />
             ))}
         </div>
     )
