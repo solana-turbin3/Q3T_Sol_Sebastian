@@ -18,16 +18,18 @@ const WalletMultiButtonDynamic = dynamic(
 );
 
 export default function Navbar({
-    setUserRole
+    setUserRole,
+    userRole
 }: {
-    setUserRole: Function
+    setUserRole: Function,
+    userRole: UserRole
 }) {
     return (
         <header className="w-full flex flex-col items-center">
             <div className="flex flex-row w-full justify-between items-center p-2">
                 <p className="text-xl"><strong>PROJECT XERO</strong></p>
 
-                <Select onValueChange={(value) => setUserRole(value)}>
+                <Select onValueChange={(value) => setUserRole(value)} value={userRole}>
                     <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Select a role" />
                     </SelectTrigger>

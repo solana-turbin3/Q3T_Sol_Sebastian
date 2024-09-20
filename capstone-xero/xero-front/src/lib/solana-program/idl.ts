@@ -1,5 +1,5 @@
 export type Xero = {
-    "address": "FpGgmLziQeTizXoyRm2ihaFrm1xtu5gx3M9XCK9ye3pU",
+    "address": "E7s9u89mMuVGULoSnY6PA1yLkcAev8MeTMxxA33pskFo",
     "metadata": {
       "name": "xero",
       "version": "0.1.0",
@@ -2348,8 +2348,8 @@ export type Xero = {
     ]
   };
   
-export type IDL = {
-    "address": "FpGgmLziQeTizXoyRm2ihaFrm1xtu5gx3M9XCK9ye3pU",
+export const IDL = {
+    "address": "E7s9u89mMuVGULoSnY6PA1yLkcAev8MeTMxxA33pskFo",
     "metadata": {
       "name": "xero",
       "version": "0.1.0",

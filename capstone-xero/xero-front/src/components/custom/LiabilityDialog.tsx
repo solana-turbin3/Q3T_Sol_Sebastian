@@ -12,18 +12,19 @@ import { Input } from "../ui/input";
 import {
     Select,
     SelectContent,
-    SelectGroup,
     SelectItem,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useState } from "react";
+import { 
+    Tabs, 
+    TabsContent, 
+    TabsList, 
+    TabsTrigger
+} from "@/components/ui/tabs";
+import { useEffect, useState } from "react";
 import { ReloadIcon } from "@radix-ui/react-icons";
-import * as web3 from "@solana/web3.js";
-import { BN } from "@coral-xyz/anchor";
 import {
     Table,
     TableBody,
@@ -31,33 +32,132 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
+import z from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { useStore } from "@/store";
+import * as anchor from "@coral-xyz/anchor";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react"
+import { useToast } from "@/hooks/use-toast";
+import { SCALING_FACTOR } from "@/lib/types/consts";
+import { formatBNToString, formatBNToDate } from "@/lib/utils";
 
-const mockLiability: LiabilityData = {
-    bump: 255,
-    investmentFund: web3.Keypair.generate().publicKey,
-    liabilityAmount: new BN(250000 * 1_000_000),
-    creationDate: new BN(223232323),
-    category: "Accounts Payable",
-    identifier: "1234"
-};
+const formSchema = z.object({
+    identifier: z.string().max(20).min(4),
+    amount: z.number(),
+    category: z.enum([
+        'accountsPayable', 
+        'loansPayable', 
+        'wagesPayable', 
+        'taxesPayable', 
+        'other'
+    ])
+});
 
 export default function LiabilityDialog({
-    fund
+    fund,
+    fundPubkey
 }: {
-    fund: FundData
+    fund: FundData,
+    fundPubkey: anchor.web3.PublicKey,
 }) {
 
+    const { program } = useStore();
+    const { sendTransaction, publicKey } = useWallet();
+    const { connection } = useConnection();
+
+    const { toast } = useToast();
     const [isRegisteringLoading, setIsRegisteringLoading] = useState(false)
-    const [liabilities, setLiabilities] = useState<LiabilityData[]>([mockLiability]);    
+    const [liabilities, setLiabilities] = useState<anchor.ProgramAccount<LiabilityData>[]>([]);    
 
-    const formatBN = (bn: BN) => bn.toString();
+    const form = useForm<z.infer<typeof formSchema>>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            identifier: "",
+            amount: 1,
+            category: "accountsPayable",
+        }
+    });
 
-    const formatDate = (bn: BN) => {
-        const date = new Date(bn.toNumber() * 1000);
-        return date.toLocaleDateString();
-    };
+    const getCategory = (categoryString: string) => {
+        switch (categoryString) {
+            case "accountsPayable": 
+                return { accountsPayable: {} };
+            case "loansPayable":
+                return { loansPayable: {} };
+            case "wagesPayable":
+                return { wagesPayable: {} };
+            case "taxesPayable":
+                return { wagesPayable: {} };
+            case "other":
+                return { other: {} };
+        }
+    }
 
+    const onSubmit = (values: z.infer<typeof formSchema>) => {
+        if (program && publicKey) {
+            const createLiability = async () => {
+                try {
+                    setIsRegisteringLoading(true);
+                    const scaledAmount = new anchor.BN(values.amount).mul(SCALING_FACTOR);
+
+                    const instruction = await program.methods
+                        .registerLiability(
+                            fund.name,
+                            values.identifier,
+                            scaledAmount,
+                            getCategory(values.category) as any
+                        )
+                        .accounts({
+                            manager: publicKey
+                        })
+                        .instruction();
+                    
+                    const transaction = new anchor.web3.Transaction();
+                    transaction.add(instruction);
+
+                    const signature = await sendTransaction(transaction, connection);
+                
+                    const link = `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+      
+                    toast ({
+                        title: "Liability registered succesfully",
+                        description: "Check your transaction here: " + link,
+                    });
+                } catch(e) {
+                    console.error("Error when creating liability: ", e);
+                    toast({
+                        title: "Error",
+                        description: "There was an error registering the liability",
+                        variant: "destructive"
+                    });
+                } finally {
+                    setIsRegisteringLoading(false)
+                }
+            };
+            createLiability()
+        }
+    }
+
+    useEffect(() => {
+        if(program) {
+            const fetchDetails = async () => {
+                const liabilities = await program.account.liability.all();
+                const filteredLiabilities = liabilities.filter(liability => liability.account.investmentFund.toString() === fundPubkey.toString());
+                setLiabilities(filteredLiabilities);
+            };
+            fetchDetails()
+        }
+    }, [program]);
 
     return (
         <Dialog>
@@ -80,60 +180,95 @@ export default function LiabilityDialog({
                                     <TableHead className="w-[100px]">Identifier</TableHead>
                                     <TableHead>Amount</TableHead>
                                     <TableHead>Category</TableHead>
-                                    <TableHead className="text-right">Creation date</TableHead>
+                                    <TableHead>Creation date</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {liabilities.map(liability => (
-                                    <TableRow key={liability.identifier}>
-                                        <TableCell className="font-medium">{liability.identifier}</TableCell>
-                                        <TableCell className="text-right">{formatBN(liability.liabilityAmount)}</TableCell>
-                                        <TableCell>{liability.category}</TableCell>
-                                        <TableCell>{formatDate(liability.creationDate)}</TableCell>
+                                    <TableRow key={liability.account.identifier}>
+                                        <TableCell>{liability.account.identifier}</TableCell>
+                                        <TableCell>{formatBNToString(liability.account.liabilityAmount.div(SCALING_FACTOR))}</TableCell>
+                                        <TableCell>{JSON.stringify(liability.account.category)}</TableCell>
+                                        <TableCell>{formatBNToDate(liability.account.creationDate)}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
                     </TabsContent>
                     <TabsContent value="register" className="w-full flex flex-col gap-2">
-                        <div className="flex flex-col gap-2 items-center justify-center">
-                            <div className="grid max-w-sm items-center gap-1.5 w-3/5">
-                                <Label>Liability Amount</Label>
-                                <Input type="number" />
-                            </div>
-                            <div className="grid max-w-sm items-center gap-1.5 w-3/5">
-                                <Label>Liability Category</Label>
-                                <Select>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a category" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectGroup>
-                                            <SelectItem value="1">Accounts Payable</SelectItem>
-                                            <SelectItem value="2">Loans Payable</SelectItem>
-                                            <SelectItem value="3">Wages Payable</SelectItem>
-                                            <SelectItem value="4">Taxes Payable</SelectItem>
-                                            <SelectItem value="5">Other</SelectItem>
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid max-w-sm items-center gap-1.5 w-3/5">
-                                <Label>Liability Identifier</Label>
-                                <Input />
-                            </div>
-                        </div>
-                        <Separator />
-                        <div className="w-full flex flex-col items-center justify-center">
-                            {isRegisteringLoading ?
-                                <Button className="w-3/5" disabled>
-                                    <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
-                                    Registering
-                                </Button>
-                            :
-                                <Button onClick={() => setIsRegisteringLoading(true)} className="w-3/5">Register</Button>
-                            }
-                        </div>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+                                <FormField
+                                    control={form.control}
+                                    name="amount"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Amount</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    {...field} 
+                                                    type="number"
+                                                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="identifier"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Identifier</FormLabel>
+                                            <FormControl>
+                                                <Input {...field}/>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="category"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Email</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select a verified email to display" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="accountsPayable">Accounts Payable</SelectItem>
+                                                    <SelectItem value="loansPayable">Loans Payable</SelectItem>
+                                                    <SelectItem value="wagesPayable">Wages Payable</SelectItem>
+                                                    <SelectItem value="taxesPayable">Taxes Payable</SelectItem>
+                                                    <SelectItem value="other">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <Separator />
+
+                                <div className="w-full flex flex-col items-center justify-center">
+                                    {isRegisteringLoading ?
+                                        <Button className="w-3/5" disabled>
+                                            <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                                            Registering
+                                        </Button>
+                                    :
+                                        <Button type="submit" className="w-3/5">Register</Button>
+                                    }
+                                </div> 
+                            </form>
+                        </Form>
                     </TabsContent>
                 </Tabs>
             </DialogContent>

@@ -7,7 +7,7 @@ mod errors;
 use instructions::{investor_instructions::*, manager_instructions::*};
 use state::*;
 
-declare_id!("FpGgmLziQeTizXoyRm2ihaFrm1xtu5gx3M9XCK9ye3pU");
+declare_id!("E7s9u89mMuVGULoSnY6PA1yLkcAev8MeTMxxA33pskFo");
 
 #[program]
 pub mod xero {
