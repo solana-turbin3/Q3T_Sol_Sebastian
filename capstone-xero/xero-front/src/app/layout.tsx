@@ -4,6 +4,7 @@ import "./globals.css";
 import WalletContextProvider from "@/lib/providers/wallet-provider";
 import { ThemeProvider } from "@/lib/providers/theme-provider";
 import Head from "next/head";
+import { Toaster } from "@/components/ui/toaster"
 
 const geistSans = localFont({
     src: "./fonts/GeistVF.woff",
@@ -44,6 +45,7 @@ export default function RootLayout({
                         {children}
                     </WalletContextProvider>
                 </ThemeProvider>
+                <Toaster />
             </body>
         </html>
     );
