@@ -1,6 +1,5 @@
 import { FundData } from "@/lib/types/program-types";
-import { BN, ProgramAccount } from "@coral-xyz/anchor";
-import * as web3 from "@solana/web3.js";
+import { ProgramAccount } from "@coral-xyz/anchor";
 import FundCardManager from "./FundCardManager";
 import CreateFundDialog from "./CreateFundDialog";
 import { useEffect, useState } from "react";
