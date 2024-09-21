@@ -18,6 +18,7 @@ import { useStore } from "@/store";
 import { useEffect, useState } from "react";
 import * as token from "@solana/spl-token";
 import { useConnection } from "@solana/wallet-adapter-react";
+import { getShareValue, unscaledShareSupply } from "@/lib/utils";
 
 export default function FundCardManager({
     fund,
@@ -55,20 +56,6 @@ export default function FundCardManager({
             fetchDetails();
         }
     }, [program]);
-
-    const unscaledShareSupply = (scaledSupply: anchor.BN): string => {
-        return scaledSupply.div(SCALING_FACTOR).toString();
-    }
-
-    const getShareValue = (
-        assets: anchor.BN, 
-        liabilities: anchor.BN, 
-        supply: anchor.BN
-    ) : string => {
-        const numerator = (assets.add(liabilities)).mul(SCALING_FACTOR);
-
-        return numerator.div(supply).toString();
-    }
 
     return (
         <Card className="w-[300px]">

@@ -44,17 +44,28 @@ export default function RedemptionDialog({
 
     const [redemptions, setRedemptions] = useState<anchor.ProgramAccount<ShareRedemptionData>[]>([]);
     const [isProcessingAllLoading, setIsProcessingAllLoading] = useState(false);
+    const [vaultUsdcBalance, setVaultUsdcBalance] = useState(0);
 
     useEffect(() => {
         if (program) {
             const fetchDetails = async () => {
-                const redemptions = await program.account.shareRedemption.all();
+                const fundStablecoinVault = token.getAssociatedTokenAddressSync(
+                    fund.stablecoinMint,
+                    fundPubkey,
+                    true
+                );
+                const [tokenAccount, redemptions] = await Promise.all([
+                    token.getAccount(connection, fundStablecoinVault),
+                    program.account.shareRedemption.all()
+                ]);
                 const filteredRedemptions = redemptions.filter(redemption => redemption.account.investmentFund.toString() === fundPubkey.toString())
                 setRedemptions(filteredRedemptions);
+                const supplyInBN = new anchor.BN(Number(tokenAccount.delegatedAmount));
+                setVaultUsdcBalance(Number(supplyInBN.div(SCALING_FACTOR)));
             };
             fetchDetails()
         }
-    }, [program]);
+    }, [program, connection]);
 
     const processAll = () => {
         if(program && publicKey) {
@@ -142,6 +153,25 @@ export default function RedemptionDialog({
         }
     }
 
+    const getRedemptionsTotalUsdc = (
+        redemptions: anchor.ProgramAccount<ShareRedemptionData>[]
+    ): number => {
+        let counter = 0;
+
+        for (const redemption of redemptions) {
+            counter += Number((redemption.account.shareValue.mul(redemption.account.sharesToRedeem)).div(SCALING_FACTOR))
+        }
+        return counter
+    }
+
+    const getTotalSharesToRedeem = (
+        redemptions: anchor.ProgramAccount<ShareRedemptionData>[]
+    ): number => {
+        return redemptions.reduce((prev, curr) => {
+            return prev + Number(curr.account.sharesToRedeem.div(SCALING_FACTOR))
+        }, 0);
+    }
+
     return (
         <Dialog>
             <DialogTrigger className="w-full">
@@ -155,15 +185,18 @@ export default function RedemptionDialog({
                     <div className="w-full flex flex-col gap-2 justify-center items-center">
                         <div className="grid max-w-sm items-center gap-1.5 w-3/5">
                             <Label>Shares to Redeem</Label>
-                            <Input disabled value="10000"/>
+                            <Input 
+                                disabled 
+                                value={getTotalSharesToRedeem(redemptions)}
+                            />
                         </div>
                         <div className="grid max-w-sm items-center gap-1.5 w-3/5">
                             <Label>Total amount in USDC to redeem</Label>
-                            <Input disabled value="10000"/>
+                            <Input disabled value={getRedemptionsTotalUsdc(redemptions)}/>
                         </div>
                         <div className="grid max-w-sm items-center gap-1.5 w-3/5">
                             <Label>Current balance in USDC vault</Label>
-                            <Input disabled value="10000"/>
+                            <Input disabled value={vaultUsdcBalance}/>
                         </div>
                     </div>
                     <Table>

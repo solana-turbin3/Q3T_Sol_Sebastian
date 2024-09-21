@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import * as anchor from "@coral-xyz/anchor"
+import { SCALING_FACTOR } from "./types/consts";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -19,4 +20,18 @@ export const formatDateToUnixTimestamp = (date: Date): anchor.BN => {
 
 export const truncatePubkey = (str: string) => {
     return str.slice(0, 3) + "..." + str.slice(-2);
+}
+
+export const getShareValue = (
+    assets: anchor.BN, 
+    liabilities: anchor.BN, 
+    supply: anchor.BN
+) : string => {
+    const numerator = (assets.add(liabilities)).mul(SCALING_FACTOR);
+
+    return numerator.div(supply).toString();
+}
+
+export const unscaledShareSupply = (scaledSupply: anchor.BN): string => {
+    return scaledSupply.div(SCALING_FACTOR).toString();
 }
