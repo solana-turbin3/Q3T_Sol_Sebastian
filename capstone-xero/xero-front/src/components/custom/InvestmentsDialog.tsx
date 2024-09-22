@@ -28,7 +28,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
-import { formatBNToDate, formatBNToString, formatDateToUnixTimestamp } from "@/lib/utils";
+import { cn, formatBNToDate, formatBNToString, formatBNToStringDecimals, formatDateToUnixTimestamp } from "@/lib/utils";
 import { SCALING_FACTOR } from "@/lib/types/consts";
 import { useStore } from "@/store";
 import z from "zod";
@@ -84,7 +84,7 @@ export default function InvestmentsDialog({
                 try {
                     setIsRegisteringLoading(true);
                     const scaledAmount = new anchor.BN(values.amount).mul(SCALING_FACTOR);
-                    const scaledInterestRate = new anchor.BN(values.interestRate).mul(SCALING_FACTOR);
+                    const scaledInterestRate = new anchor.BN(values.interestRate * SCALING_FACTOR.toNumber());
                     const maturityDateInUnix = formatDateToUnixTimestamp(values.date);
 
                     const instruction = await program.methods
@@ -173,6 +173,7 @@ export default function InvestmentsDialog({
             const fetchDetails = async () => {
                 const investments = await program.account.investment.all();
                 const filteredInvestments = investments.filter(investment => investment.account.investmentFund.toString() === fundPubkey.toString());
+                console.log(filteredInvestments)
                 setInvestments(filteredInvestments);
             }
             fetchDetails();
@@ -209,7 +210,7 @@ export default function InvestmentsDialog({
                                     <TableRow key={investment.account.identifier}>
                                         <TableCell>{investment.account.identifier}</TableCell>
                                         <TableCell>{formatBNToString(investment.account.investedAmount.div(SCALING_FACTOR))}</TableCell>
-                                        <TableCell>{formatBNToString(investment.account.interestRate.div(SCALING_FACTOR))}</TableCell>
+                                        <TableCell>{formatBNToStringDecimals(investment.account.interestRate)}</TableCell>
                                         <TableCell>{formatBNToDate(investment.account.initDate)}</TableCell>
                                         <TableCell>{formatBNToDate(investment.account.maturityDate)}</TableCell>
                                     </TableRow>
@@ -308,9 +309,6 @@ export default function InvestmentsDialog({
                                                         mode="single"
                                                         selected={field.value}
                                                         onSelect={field.onChange}
-                                                        disabled={(date) =>
-                                                            date > new Date() || date < new Date("1900-01-01")
-                                                        }
                                                         initialFocus
                                                     />
                                                 </PopoverContent>
@@ -319,8 +317,6 @@ export default function InvestmentsDialog({
                                         </FormItem>
                                     )}
                                 />
-                            </form>
-
                             <Separator />
 
                             <div className="w-full flex flex-col items-center justify-center">
@@ -333,6 +329,8 @@ export default function InvestmentsDialog({
                                     <Button type="submit" className="w-3/5">Register</Button>
                                 }
                             </div>
+                            </form>
+
                         </Form>
                     </TabsContent>
                 </Tabs>

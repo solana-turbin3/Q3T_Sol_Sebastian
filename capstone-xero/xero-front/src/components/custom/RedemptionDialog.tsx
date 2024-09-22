@@ -23,7 +23,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import * as anchor from "@coral-xyz/anchor";
 import { useStore } from "@/store";
-import { formatBNToDate, formatBNToString, truncatePubkey } from "@/lib/utils";
+import { formatBNToDate, formatBNToString, formatCurrency, formatNumber, truncatePubkey } from "@/lib/utils";
 import { SCALING_FACTOR } from "@/lib/types/consts";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useToast } from "@/hooks/use-toast";
@@ -60,7 +60,7 @@ export default function RedemptionDialog({
                 ]);
                 const filteredRedemptions = redemptions.filter(redemption => redemption.account.investmentFund.toString() === fundPubkey.toString())
                 setRedemptions(filteredRedemptions);
-                const supplyInBN = new anchor.BN(Number(tokenAccount.delegatedAmount));
+                const supplyInBN = new anchor.BN(Number(tokenAccount.amount));
                 setVaultUsdcBalance(Number(supplyInBN.div(SCALING_FACTOR)));
             };
             fetchDetails()
@@ -156,12 +156,14 @@ export default function RedemptionDialog({
     const getRedemptionsTotalUsdc = (
         redemptions: anchor.ProgramAccount<ShareRedemptionData>[]
     ): number => {
-        let counter = 0;
-
+        let total = new anchor.BN(0);
         for (const redemption of redemptions) {
-            counter += Number((redemption.account.shareValue.mul(redemption.account.sharesToRedeem)).div(SCALING_FACTOR))
+            const redeemValue = redemption.account.shareValue
+                .mul(redemption.account.sharesToRedeem)
+                .div(SCALING_FACTOR);
+            total = total.add(redeemValue);
         }
-        return counter
+        return total.toNumber() / SCALING_FACTOR.toNumber();
     }
 
     const getTotalSharesToRedeem = (
@@ -186,17 +188,17 @@ export default function RedemptionDialog({
                         <div className="grid max-w-sm items-center gap-1.5 w-3/5">
                             <Label>Shares to Redeem</Label>
                             <Input 
-                                disabled 
-                                value={getTotalSharesToRedeem(redemptions)}
+                                readOnly 
+                                value={formatNumber(getTotalSharesToRedeem(redemptions).toString())}
                             />
                         </div>
                         <div className="grid max-w-sm items-center gap-1.5 w-3/5">
                             <Label>Total amount in USDC to redeem</Label>
-                            <Input disabled value={getRedemptionsTotalUsdc(redemptions)}/>
+                            <Input readOnly value={formatCurrency(getRedemptionsTotalUsdc(redemptions).toString())}/>
                         </div>
                         <div className="grid max-w-sm items-center gap-1.5 w-3/5">
                             <Label>Current balance in USDC vault</Label>
-                            <Input disabled value={vaultUsdcBalance}/>
+                            <Input readOnly value={formatCurrency(vaultUsdcBalance.toString())}/>
                         </div>
                     </div>
                     <Table>
@@ -213,9 +215,9 @@ export default function RedemptionDialog({
                             {redemptions.map(redemption => (
                                 <TableRow key={Number(redemption.account.creationDate)}>
                                     <TableCell>{truncatePubkey(redemption.account.investor.toString())}</TableCell>
-                                    <TableCell>{formatBNToString(redemption.account.sharesToRedeem.div(SCALING_FACTOR))}</TableCell>
-                                    <TableCell>{formatBNToString(redemption.account.shareValue.div(SCALING_FACTOR))}</TableCell>
-                                    <TableCell>{formatBNToString((redemption.account.sharesToRedeem.mul(redemption.account.shareValue)).div(SCALING_FACTOR))}</TableCell>
+                                    <TableCell>{formatNumber(formatBNToString(redemption.account.sharesToRedeem.div(SCALING_FACTOR)))}</TableCell>
+                                    <TableCell>{formatCurrency(formatBNToString(redemption.account.shareValue.div(SCALING_FACTOR)))}</TableCell>
+                                    <TableCell>{formatNumber(formatBNToString((redemption.account.sharesToRedeem.mul(redemption.account.shareValue)).div(SCALING_FACTOR)))}</TableCell>
                                     <TableCell>{formatBNToDate(redemption.account.creationDate)}</TableCell>
                                 </TableRow>
                             ))}

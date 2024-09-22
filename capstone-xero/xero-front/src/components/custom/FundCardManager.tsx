@@ -18,7 +18,7 @@ import { useStore } from "@/store";
 import { useEffect, useState } from "react";
 import * as token from "@solana/spl-token";
 import { useConnection } from "@solana/wallet-adapter-react";
-import { getShareValue, unscaledShareSupply } from "@/lib/utils";
+import { formatCurrency, formatNumber, getShareValue, unscaledShareSupply } from "@/lib/utils";
 
 export default function FundCardManager({
     fund,
@@ -45,13 +45,18 @@ export default function FundCardManager({
                     program.programId
                 );
 
-                const [investments, supplyInfo] = await Promise.all([
-                    program.account.investment.all(),
-                    token.getMint(connection, mint, "confirmed")
-                ])
+                try {
+                    const [investments, supplyInfo] = await Promise.all([
+                        program.account.investment.all(),
+                        token.getMint(connection, mint, "confirmed")
+                    ])
+                    setInvestmentsCount(investments.length);
+                    setSharesSupply(new anchor.BN(Number(supplyInfo.supply)))
 
-                setInvestmentsCount(investments.length);
-                setSharesSupply(new anchor.BN(Number(supplyInfo.supply)))
+                } catch(e) {
+                    console.error("Error fetchiing info: ", e);
+                }
+
             }
             fetchDetails();
         }
@@ -65,19 +70,19 @@ export default function FundCardManager({
             <CardContent className="flex flex-col gap-2">
                 <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label>Total Assets</Label>
-                    <Input readOnly placeholder={fund.assetsAmount.div(SCALING_FACTOR).toString()} />
+                    <Input readOnly placeholder={formatCurrency(fund.assetsAmount.div(SCALING_FACTOR).toString())} />
                 </div>
                 <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label>Total Liabilities</Label>
-                    <Input readOnly placeholder={fund.liabilitiesAmount.div(SCALING_FACTOR).toString()} />
+                    <Input readOnly placeholder={formatCurrency(fund.liabilitiesAmount.div(SCALING_FACTOR).toString())} />
                 </div>
                 <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label>Share Value</Label>
-                    <Input readOnly placeholder={sharesSupply ? getShareValue(fund.assetsAmount, fund.liabilitiesAmount, sharesSupply) : "0"} />
+                    <Input readOnly placeholder={sharesSupply ? formatCurrency(getShareValue(fund.assetsAmount, fund.liabilitiesAmount, sharesSupply)) : "$0"} />
                 </div>
                 <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label>Outstanding Shares</Label>
-                    <Input readOnly placeholder={sharesSupply ? unscaledShareSupply(sharesSupply) : "0"} />
+                    <Input readOnly placeholder={sharesSupply ? formatNumber(unscaledShareSupply(sharesSupply)) : "0"} />
                 </div>
                 <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label>Active Investments</Label>
