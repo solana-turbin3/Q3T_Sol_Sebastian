@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table"
 import { Separator } from "../ui/separator";
 import * as anchor from "@coral-xyz/anchor";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CalendarIcon, ReloadIcon } from "@radix-ui/react-icons";
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -28,7 +28,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
-import { formatBNToDate, formatBNToString, formatDateToUnixTimestamp } from "@/lib/utils";
+import { cn, formatBNToDate, formatBNToString, formatBNToStringDecimals, formatDateToUnixTimestamp } from "@/lib/utils";
 import { SCALING_FACTOR } from "@/lib/types/consts";
 import { useStore } from "@/store";
 import z from "zod";
@@ -54,7 +54,7 @@ const formSchema = z.object({
 
 export default function InvestmentsDialog({
     fund,
-    fundPubkey
+    fundPubkey,
 }: {
     fund: FundData,
     fundPubkey: anchor.web3.PublicKey,
@@ -65,8 +65,9 @@ export default function InvestmentsDialog({
 
     const { toast } = useToast();
     const [isProcessingLoading, setIsProcessingLoading] = useState(false);
-    const [investments, setInvestments] = useState<anchor.ProgramAccount<InvestmentData>[]>([]);
     const [isRegisteringLoading, setIsRegisteringLoading] = useState(false);
+    const [investments, setInvestments] = useState<anchor.ProgramAccount<InvestmentData>[]>([])
+    const [isOpen, setIsOpen] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -84,7 +85,7 @@ export default function InvestmentsDialog({
                 try {
                     setIsRegisteringLoading(true);
                     const scaledAmount = new anchor.BN(values.amount).mul(SCALING_FACTOR);
-                    const scaledInterestRate = new anchor.BN(values.interestRate).mul(SCALING_FACTOR);
+                    const scaledInterestRate = new anchor.BN(values.interestRate * SCALING_FACTOR.toNumber());
                     const maturityDateInUnix = formatDateToUnixTimestamp(values.date);
 
                     const instruction = await program.methods
@@ -168,19 +169,29 @@ export default function InvestmentsDialog({
         }
     }
 
-    useEffect(() => {
+    const fetchInvestments = async () => {
         if (program) {
-            const fetchDetails = async () => {
-                const investments = await program.account.investment.all();
-                const filteredInvestments = investments.filter(investment => investment.account.investmentFund.toString() === fundPubkey.toString());
-                setInvestments(filteredInvestments);
-            }
-            fetchDetails();
+            const investments = await program.account.investment.all([
+                {
+                    memcmp: {
+                        offset: 9,
+                        bytes: fundPubkey.toBase58()
+                    }
+                }
+            ]);
+            setInvestments(investments)
         }
-    }, [program])
+    }
+
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open);
+        if (open) {
+            fetchInvestments()
+        }
+    };
 
     return (
-        <Dialog>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger className="w-full">
                 <Button className="w-full">Investments</Button>
             </DialogTrigger>
@@ -209,7 +220,7 @@ export default function InvestmentsDialog({
                                     <TableRow key={investment.account.identifier}>
                                         <TableCell>{investment.account.identifier}</TableCell>
                                         <TableCell>{formatBNToString(investment.account.investedAmount.div(SCALING_FACTOR))}</TableCell>
-                                        <TableCell>{formatBNToString(investment.account.interestRate.div(SCALING_FACTOR))}</TableCell>
+                                        <TableCell>{formatBNToStringDecimals(investment.account.interestRate)}</TableCell>
                                         <TableCell>{formatBNToDate(investment.account.initDate)}</TableCell>
                                         <TableCell>{formatBNToDate(investment.account.maturityDate)}</TableCell>
                                     </TableRow>
@@ -291,27 +302,24 @@ export default function InvestmentsDialog({
                                             <Popover>
                                                 <PopoverTrigger asChild>
                                                     <FormControl>
-                                                        <Button
-                                                            variant={"outline"}
-                                                        >
+                                                        <Button variant={"outline"}>
                                                             {field.value ? (
-                                                                field.value.toLocaleString()
+                                                                field.value.toLocaleDateString()
                                                             ) : (
                                                                 <span>Pick a date</span>
                                                             )}
                                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                         </Button>
+
                                                     </FormControl>
                                                 </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
+                                                <PopoverContent className="w-auto p-0">
                                                     <Calendar
                                                         mode="single"
                                                         selected={field.value}
-                                                        onSelect={field.onChange}
-                                                        disabled={(date) =>
-                                                            date > new Date() || date < new Date("1900-01-01")
-                                                        }
-                                                        initialFocus
+                                                        onSelect={(date) => {
+                                                            field.onChange(date);
+                                                        }}
                                                     />
                                                 </PopoverContent>
                                             </Popover>
@@ -319,8 +327,6 @@ export default function InvestmentsDialog({
                                         </FormItem>
                                     )}
                                 />
-                            </form>
-
                             <Separator />
 
                             <div className="w-full flex flex-col items-center justify-center">
@@ -333,6 +339,8 @@ export default function InvestmentsDialog({
                                     <Button type="submit" className="w-3/5">Register</Button>
                                 }
                             </div>
+                            </form>
+
                         </Form>
                     </TabsContent>
                 </Tabs>

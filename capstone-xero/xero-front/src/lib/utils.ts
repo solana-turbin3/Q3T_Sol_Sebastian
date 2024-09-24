@@ -9,6 +9,11 @@ export function cn(...inputs: ClassValue[]) {
 
 export const formatBNToString = (bn: anchor.BN) => bn.toString();
 
+export const formatBNToStringDecimals = (bn: anchor.BN, scale: number = 1_000_000) => {
+    const scaledValue = bn.toNumber() / scale;
+    return scaledValue.toFixed(6); 
+};
+
 export const formatBNToDate = (bn: anchor.BN) => {
     const date = new Date(bn.toNumber() * 1000);
     return date.toLocaleDateString();
@@ -19,19 +24,64 @@ export const formatDateToUnixTimestamp = (date: Date): anchor.BN => {
 }
 
 export const truncatePubkey = (str: string) => {
-    return str.slice(0, 3) + "..." + str.slice(-2);
+    return str.slice(0, 4) + "..." + str.slice(-4);
 }
 
 export const getShareValue = (
     assets: anchor.BN, 
     liabilities: anchor.BN, 
     supply: anchor.BN
-) : string => {
-    const numerator = (assets.add(liabilities)).mul(SCALING_FACTOR);
+): string => {
 
-    return numerator.div(supply).toString();
-}
+    if (supply.isZero()) {
+        return "0.000000"; // Return a string representation of zero with six decimals
+    }
+
+    const numerator = assets.sub(liabilities);
+
+    const shareValue = numerator.mul(SCALING_FACTOR).div(supply);
+
+    const scaledValue = shareValue.toNumber() / SCALING_FACTOR.toNumber();
+
+    return scaledValue.toFixed(6);
+};
 
 export const unscaledShareSupply = (scaledSupply: anchor.BN): string => {
     return scaledSupply.div(SCALING_FACTOR).toString();
+}
+
+export const formatCurrency = (value: string, locale = 'en-US', currency = 'USD', maxDecimals = 6): string => {
+    const numberValue = parseFloat(value);
+  
+    const formatter = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: maxDecimals
+    });
+  
+    return formatter.format(numberValue);
+}
+
+export const formatNumber = (
+    value: string,
+    decimalPlaces: number = 0,
+    thousandsSeparator: string = ',',
+    decimalSeparator: string = '.'
+  ): string => {
+    const number = parseFloat(value);
+  
+    if (isNaN(number)) {
+      return 'Invalid Number';
+    }
+  
+    const rounded = number.toFixed(decimalPlaces);
+  
+    const [integerPart, decimalPart] = rounded.split('.');
+  
+    const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSeparator);
+  
+    return decimalPlaces > 0
+      ? `${formattedIntegerPart}${decimalSeparator}${decimalPart}`
+      : formattedIntegerPart;
 }

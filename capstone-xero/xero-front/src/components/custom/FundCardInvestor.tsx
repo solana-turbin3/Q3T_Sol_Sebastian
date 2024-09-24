@@ -30,7 +30,7 @@ import { SCALING_FACTOR } from "@/lib/types/consts";
 import { useStore } from "@/store";
 import { useConnection, useWallet} from "@solana/wallet-adapter-react";
 import * as token from "@solana/spl-token";
-import { getShareValue, unscaledShareSupply } from "@/lib/utils";
+import { formatCurrency, formatNumber, getShareValue, unscaledShareSupply } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 export default function FundCardInvestor({
@@ -69,9 +69,9 @@ export default function FundCardInvestor({
                 );
 
                 const supplyInfo = await token.getMint(connection, mint, "confirmed");
-
                 try {
-                    const userTokenAccount = await token.getAccount(connection, publicKey);
+                    const userAta = token.getAssociatedTokenAddressSync(mint, publicKey);
+                    const userTokenAccount = await token.getAccount(connection, userAta);
                     const amountBN = new anchor.BN(Number(userTokenAccount.amount));
                     setOwnedShares(amountBN.div(SCALING_FACTOR));
                 } catch {
@@ -204,11 +204,11 @@ export default function FundCardInvestor({
             <CardContent className="flex flex-col gap-2">
                 <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label>Total Assets</Label>
-                    <Input readOnly placeholder={fund.assetsAmount.div(SCALING_FACTOR).toString()} />
+                    <Input readOnly placeholder={formatCurrency(fund.assetsAmount.div(SCALING_FACTOR).toString())} />
                 </div>
                 <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label>Total Liabilities</Label>
-                    <Input readOnly placeholder={fund.liabilitiesAmount.div(SCALING_FACTOR).toString()} />
+                    <Input readOnly placeholder={formatCurrency(fund.liabilitiesAmount.div(SCALING_FACTOR).toString())} />
                 </div>
             </CardContent>
             <CardFooter className="w-full flex justify-center items-center">
@@ -223,23 +223,23 @@ export default function FundCardInvestor({
                         <div className="flex flex-col gap-2 items-center justify-center">
                             <div className="grid max-w-sm items-center gap-1.5 w-3/5">
                                 <Label>Total Assets</Label>
-                                <Input readOnly placeholder={fund.assetsAmount.div(SCALING_FACTOR).toString()} />
+                                <Input readOnly placeholder={formatCurrency(fund.assetsAmount.div(SCALING_FACTOR).toString())} />
                                 </div>
                             <div className="grid max-w-sm items-center gap-1.5 w-3/5">
                                 <Label>Total Liabilities</Label>
-                                <Input readOnly placeholder={fund.liabilitiesAmount.div(SCALING_FACTOR).toString()} />
+                                <Input readOnly placeholder={formatCurrency(fund.liabilitiesAmount.div(SCALING_FACTOR).toString())} />
                                 </div>
                             <div className="grid max-w-sm items-center gap-1.5 w-3/5">
                                 <Label>Share Value</Label>
-                                <Input readOnly placeholder={sharesSupply ? getShareValue(fund.assetsAmount, fund.liabilitiesAmount, sharesSupply) : "0"} />
+                                <Input readOnly placeholder={sharesSupply ? formatCurrency(getShareValue(fund.assetsAmount, fund.liabilitiesAmount, sharesSupply)) : "0"} />
                                 </div>
                             <div className="grid max-w-sm items-center gap-1.5 w-3/5">
                                 <Label>Outstanding Shares</Label>
-                                <Input readOnly placeholder={sharesSupply ? unscaledShareSupply(sharesSupply) : "0"} />
+                                <Input readOnly placeholder={sharesSupply ? formatNumber(unscaledShareSupply(sharesSupply)) : "0"} />
                             </div>
                             <div className="grid max-w-sm items-center gap-1.5 w-3/5">
                                 <Label>Shares owned</Label>
-                                <Input readOnly placeholder={ ownedShares ? ownedShares.toString() : "0"} />
+                                <Input readOnly placeholder={ ownedShares ? formatNumber(ownedShares.toString()) : "0"} />
                             </div>
                         </div>
                         <Separator />

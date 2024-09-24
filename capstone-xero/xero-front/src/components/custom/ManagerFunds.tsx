@@ -1,3 +1,4 @@
+"use client"
 import { FundData } from "@/lib/types/program-types";
 import { ProgramAccount } from "@coral-xyz/anchor";
 import FundCardManager from "./FundCardManager";
@@ -14,12 +15,19 @@ export default function ManagerFunds() {
     const { publicKey } = useWallet();
 
     useEffect(() => {
-        if(program && publicKey) {
+        console.log("executing useEffect")
+        if (program && publicKey) {
             const fetchFunds = async () => {
                 try {
-                    const allFunds = await program.account.investmentFund.all();
-                    const filteredFunds = allFunds.filter(fund => fund.account.manager.toString() === publicKey.toString());
-                    setFunds(filteredFunds);
+                    const managerFunds = await program.account.investmentFund.all([
+                        {
+                            memcmp: {
+                                offset: 60,
+                                bytes: publicKey.toBase58()
+                            }
+                        }
+                    ]);
+                    setFunds(managerFunds);
                 } catch(e) {
                     console.error("Error fetching funds: ", e);
                 }
