@@ -32,25 +32,19 @@ export default function FundCardManager({
     const { connection } = useConnection();
 
     const [sharesSupply, setSharesSupply] = useState<anchor.BN>();
-    const [investmentsCount, setInvestmentsCount] = useState(0);
     
     useEffect(() => {
         if (program) {            
             const fetchDetails = async () => {
-                const [mint] = anchor.web3.PublicKey.findProgramAddressSync(
-                    [
-                        Buffer.from("shares"),
-                        fundPubkey.toBuffer()
-                    ],
-                    program.programId
-                );
-
                 try {
-                    const [investments, supplyInfo] = await Promise.all([
-                        program.account.investment.all(),
-                        token.getMint(connection, mint, "confirmed")
-                    ])
-                    setInvestmentsCount(investments.length);
+                    const [mint] = anchor.web3.PublicKey.findProgramAddressSync(
+                        [
+                            Buffer.from("shares"),
+                            fundPubkey.toBuffer()
+                        ],
+                        program.programId
+                    );
+                    const supplyInfo = await token.getMint(connection, mint, "confirmed")
                     setSharesSupply(new anchor.BN(Number(supplyInfo.supply)))
 
                 } catch(e) {
@@ -83,10 +77,6 @@ export default function FundCardManager({
                 <div className="grid w-full max-w-sm items-center gap-1.5">
                     <Label>Outstanding Shares</Label>
                     <Input readOnly placeholder={sharesSupply ? formatNumber(unscaledShareSupply(sharesSupply)) : "0"} />
-                </div>
-                <div className="grid w-full max-w-sm items-center gap-1.5">
-                    <Label>Active Investments</Label>
-                    <Input readOnly placeholder={investmentsCount.toString()} />
                 </div>
             </CardContent>
             <CardFooter className="w-full flex flex-col justify-center items-center gap-2">

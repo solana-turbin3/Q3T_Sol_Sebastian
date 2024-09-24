@@ -1,3 +1,4 @@
+"use client"
 import { FundData } from "@/lib/types/program-types"
 import * as anchor from "@coral-xyz/anchor";
 import FundCardInvestor from "./FundCardInvestor";

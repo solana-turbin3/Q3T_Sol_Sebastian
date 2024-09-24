@@ -16,7 +16,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Separator } from "../ui/separator";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import { Input } from "../ui/input";
@@ -45,27 +45,7 @@ export default function RedemptionDialog({
     const [redemptions, setRedemptions] = useState<anchor.ProgramAccount<ShareRedemptionData>[]>([]);
     const [isProcessingAllLoading, setIsProcessingAllLoading] = useState(false);
     const [vaultUsdcBalance, setVaultUsdcBalance] = useState(0);
-
-    useEffect(() => {
-        if (program) {
-            const fetchDetails = async () => {
-                const fundStablecoinVault = token.getAssociatedTokenAddressSync(
-                    fund.stablecoinMint,
-                    fundPubkey,
-                    true
-                );
-                const [tokenAccount, redemptions] = await Promise.all([
-                    token.getAccount(connection, fundStablecoinVault),
-                    program.account.shareRedemption.all()
-                ]);
-                const filteredRedemptions = redemptions.filter(redemption => redemption.account.investmentFund.toString() === fundPubkey.toString())
-                setRedemptions(filteredRedemptions);
-                const supplyInBN = new anchor.BN(Number(tokenAccount.amount));
-                setVaultUsdcBalance(Number(supplyInBN.div(SCALING_FACTOR)));
-            };
-            fetchDetails()
-        }
-    }, [program, connection]);
+    const [isOpen, setIsOpen] = useState(false);
 
     const processAll = () => {
         if(program && publicKey) {
@@ -174,8 +154,39 @@ export default function RedemptionDialog({
         }, 0);
     }
 
+    const fetchDetails = async () => {
+        if (program) {
+            const fundStablecoinVault = token.getAssociatedTokenAddressSync(
+                fund.stablecoinMint,
+                fundPubkey,
+                true
+            );
+            const [tokenAccount, redemptions] = await Promise.all([
+                token.getAccount(connection, fundStablecoinVault),
+                program.account.shareRedemption.all([
+                    {
+                        memcmp: {
+                            offset: 41,
+                            bytes: fundPubkey.toBase58()
+                        }
+                    }
+                ])
+            ]);
+            setRedemptions(redemptions);
+            const supplyInBN = new anchor.BN(Number(tokenAccount.amount));
+            setVaultUsdcBalance(Number(supplyInBN.div(SCALING_FACTOR)));
+        }
+    };
+
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open);
+        if (open) {
+            fetchDetails()
+        }
+    };
+
     return (
-        <Dialog>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger className="w-full">
                 <Button className="w-full">Share Redemptions</Button>
             </DialogTrigger>

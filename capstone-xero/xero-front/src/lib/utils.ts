@@ -37,16 +37,13 @@ export const getShareValue = (
         return "0.000000"; // Return a string representation of zero with six decimals
     }
 
-    // Add assets and liabilities
-    const numerator = assets.add(liabilities);
+    const numerator = assets.sub(liabilities);
 
-    // Calculate the share value
     const shareValue = numerator.mul(SCALING_FACTOR).div(supply);
 
-    // Convert to string and scale down to six decimal places
     const scaledValue = shareValue.toNumber() / SCALING_FACTOR.toNumber();
 
-    return scaledValue.toFixed(6); // Format to six decimal places
+    return scaledValue.toFixed(6);
 };
 
 export const unscaledShareSupply = (scaledSupply: anchor.BN): string => {

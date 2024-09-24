@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table"
 import { Separator } from "../ui/separator";
 import * as anchor from "@coral-xyz/anchor";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CalendarIcon, ReloadIcon } from "@radix-ui/react-icons";
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -54,7 +54,7 @@ const formSchema = z.object({
 
 export default function InvestmentsDialog({
     fund,
-    fundPubkey
+    fundPubkey,
 }: {
     fund: FundData,
     fundPubkey: anchor.web3.PublicKey,
@@ -65,8 +65,9 @@ export default function InvestmentsDialog({
 
     const { toast } = useToast();
     const [isProcessingLoading, setIsProcessingLoading] = useState(false);
-    const [investments, setInvestments] = useState<anchor.ProgramAccount<InvestmentData>[]>([]);
     const [isRegisteringLoading, setIsRegisteringLoading] = useState(false);
+    const [investments, setInvestments] = useState<anchor.ProgramAccount<InvestmentData>[]>([])
+    const [isOpen, setIsOpen] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -168,20 +169,29 @@ export default function InvestmentsDialog({
         }
     }
 
-    useEffect(() => {
+    const fetchInvestments = async () => {
         if (program) {
-            const fetchDetails = async () => {
-                const investments = await program.account.investment.all();
-                const filteredInvestments = investments.filter(investment => investment.account.investmentFund.toString() === fundPubkey.toString());
-                console.log(filteredInvestments)
-                setInvestments(filteredInvestments);
-            }
-            fetchDetails();
+            const investments = await program.account.investment.all([
+                {
+                    memcmp: {
+                        offset: 9,
+                        bytes: fundPubkey.toBase58()
+                    }
+                }
+            ]);
+            setInvestments(investments)
         }
-    }, [program])
+    }
+
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open);
+        if (open) {
+            fetchInvestments()
+        }
+    };
 
     return (
-        <Dialog>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger className="w-full">
                 <Button className="w-full">Investments</Button>
             </DialogTrigger>
@@ -292,24 +302,24 @@ export default function InvestmentsDialog({
                                             <Popover>
                                                 <PopoverTrigger asChild>
                                                     <FormControl>
-                                                        <Button
-                                                            variant={"outline"}
-                                                        >
+                                                        <Button variant={"outline"}>
                                                             {field.value ? (
-                                                                field.value.toLocaleString()
+                                                                field.value.toLocaleDateString()
                                                             ) : (
                                                                 <span>Pick a date</span>
                                                             )}
                                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                         </Button>
+
                                                     </FormControl>
                                                 </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
+                                                <PopoverContent className="w-auto p-0">
                                                     <Calendar
                                                         mode="single"
                                                         selected={field.value}
-                                                        onSelect={field.onChange}
-                                                        initialFocus
+                                                        onSelect={(date) => {
+                                                            field.onChange(date);
+                                                        }}
                                                     />
                                                 </PopoverContent>
                                             </Popover>

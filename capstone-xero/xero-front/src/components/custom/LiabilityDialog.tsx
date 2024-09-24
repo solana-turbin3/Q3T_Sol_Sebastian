@@ -77,7 +77,8 @@ export default function LiabilityDialog({
 
     const { toast } = useToast();
     const [isRegisteringLoading, setIsRegisteringLoading] = useState(false)
-    const [liabilities, setLiabilities] = useState<anchor.ProgramAccount<LiabilityData>[]>([]);    
+    const [liabilities, setLiabilities] = useState<anchor.ProgramAccount<LiabilityData>[]>([]);
+    const [isOpen, setIsOpen] = useState(false);   
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -148,19 +149,29 @@ export default function LiabilityDialog({
         }
     }
 
-    useEffect(() => {
-        if(program) {
-            const fetchDetails = async () => {
-                const liabilities = await program.account.liability.all();
-                const filteredLiabilities = liabilities.filter(liability => liability.account.investmentFund.toString() === fundPubkey.toString());
-                setLiabilities(filteredLiabilities);
-            };
-            fetchDetails()
+    const fetchLiabilities = async () => {
+        if (program) {
+            const liabilities = await program.account.liability.all([
+                {
+                    memcmp: {
+                        offset: 9,
+                        bytes: fundPubkey.toBase58()
+                    }
+                }
+            ]);
+            setLiabilities(liabilities);
         }
-    }, [program]);
+    }
+
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open);
+        if (open) {
+            fetchLiabilities()
+        }
+    };
 
     return (
-        <Dialog>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger className="w-full">
                 <Button className="w-full">Liabilities</Button>
             </DialogTrigger>
