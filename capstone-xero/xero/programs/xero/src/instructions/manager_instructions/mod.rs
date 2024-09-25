@@ -15,3 +15,6 @@ pub use register_liability::*;
 
 pub mod process_redemption;
 pub use process_redemption::*;
+
+pub mod vault_withdrawal;
+pub use vault_withdrawal::*;

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::errors::FundError;
+use crate::{errors::FundError, SCALING_FACTOR};
 
 #[account]
 pub struct InvestmentFund {
@@ -32,7 +32,7 @@ impl InvestmentFund {
         shares_outstanding: u64
     ) -> Result<u64> {
         self.assets_amount.checked_sub(self.liabilities_amount)
-            .and_then(|amount| amount.checked_mul(1_000_000))
+            .and_then(|amount| amount.checked_mul(SCALING_FACTOR))
             .and_then(|amount| amount.checked_div(shares_outstanding))
             .ok_or(FundError::ArithmeticError.into())
     }

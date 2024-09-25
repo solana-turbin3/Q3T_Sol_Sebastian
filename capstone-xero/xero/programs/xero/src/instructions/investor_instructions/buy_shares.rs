@@ -12,7 +12,7 @@ use anchor_spl::{
     }
 };
 
-use crate::{errors::FundError, InvestmentFund};
+use crate::{errors::FundError, InvestmentFund, SCALING_FACTOR};
 
 #[derive(Accounts)]
 #[instruction(fund_name: String, manager: Pubkey)]
@@ -79,7 +79,7 @@ impl<'info> BuyShares<'info> {
         let fund_share_value = self.investment_fund.get_share_value(shares_outstanding)?;
 
         let number_of_shares = invested_amount
-            .checked_mul(1_000_000)
+            .checked_mul(SCALING_FACTOR)
             .and_then(|amount| amount.checked_div(fund_share_value))
             .ok_or(FundError::ArithmeticError)?;
 
