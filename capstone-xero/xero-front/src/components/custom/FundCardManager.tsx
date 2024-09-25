@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import * as token from "@solana/spl-token";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { formatCurrency, formatNumber, getShareValue, unscaledShareSupply } from "@/lib/utils";
+import VaultManagement from "./VaultManagement";
 
 export default function FundCardManager({
     fund,
@@ -80,6 +81,7 @@ export default function FundCardManager({
                 </div>
             </CardContent>
             <CardFooter className="w-full flex flex-col justify-center items-center gap-2">
+                <VaultManagement fund={fund} fundPubkey={fundPubkey} />
                 <LiabilityDialog fund={fund} fundPubkey={fundPubkey} />
                 <InvestmentsDialog fund={fund} fundPubkey={fundPubkey} />
                 <RedemptionDialog  fund={fund} fundPubkey={fundPubkey} />

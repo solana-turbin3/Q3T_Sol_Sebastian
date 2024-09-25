@@ -12,7 +12,7 @@ use anchor_spl::{
     }
 };
 
-use crate::{errors::FundError, InvestmentFund, ShareRedemption};
+use crate::{errors::FundError, InvestmentFund, ShareRedemption, SCALING_FACTOR};
 
 #[derive(Accounts)]
 #[instruction(fund_name: String)]
@@ -90,7 +90,7 @@ impl<'info> ProcessShareRedemption<'info> {
 
         let stablecoin_to_transfer = self.share_redemption.shares_to_redeem
             .checked_mul(self.share_redemption.share_value)
-            .and_then(|amount| amount.checked_div(1_000_000))
+            .and_then(|amount| amount.checked_div(SCALING_FACTOR))
             .ok_or(FundError::ArithmeticError)?;
 
         let manager_key = self.manager.key();

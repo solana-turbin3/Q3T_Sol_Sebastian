@@ -9,6 +9,8 @@ use state::*;
 
 declare_id!("E7s9u89mMuVGULoSnY6PA1yLkcAev8MeTMxxA33pskFo");
 
+pub const SCALING_FACTOR: u64 = 1_000_000;
+
 #[program]
 pub mod xero {
     use super::*;
@@ -143,6 +145,17 @@ pub mod xero {
     ) -> Result<()> {
 
         ctx.accounts.cancel_redeem_shares(manager)?;
+
+        Ok(())
+    }
+
+    pub fn withdraw_from_vault(
+        ctx: Context<VaultWithdrawal>,
+        _fund_name: String,
+        withdrawal_amount: u64
+    ) -> Result<()> {
+
+        ctx.accounts.withdraw_from_vault(withdrawal_amount)?;
 
         Ok(())
     }

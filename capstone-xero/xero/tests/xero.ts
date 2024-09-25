@@ -435,14 +435,10 @@ describe("xero", () => {
     const calculatedInteredAdded = investmentAmount.mul(interestRate).div(daysInMonth);
     const calculatedInteredAddedScaled = calculatedInteredAdded.div(new anchor.BN(scalingFactor));
 
-    
-    console.log("interest added:", (Number(interestAdded) / scalingFactor).toFixed(6));
-    console.log("calculated interest added", (Number(calculatedInteredAddedScaled) / scalingFactor).toFixed(6))
-
     expect(Number(calculatedInteredAddedScaled)).to.eq(Number(interestAdded))
   })
 
-  it("creates a share redemption request", async () => {
+  it("Creates a share redemption request", async () => {
     const fundDataAccountBefore = await program.account.investmentFund.fetch(investmentFundPDA);
     const userSharesBefore = (await token.getAccount(connection, investorFundATA, "confirmed")).amount;
     const outstandingSharesBefore = (await token.getMint(
@@ -484,7 +480,7 @@ describe("xero", () => {
     expect(Number(redemptionData.shareValue)).to.eq(Number(shareValueBefore))
   });
 
-  it("processes the share redemption request", async () => {
+  it("Processes the share redemption request", async () => {
 
     const redemptionData = await program.account.shareRedemption.fetch(investorRedemptionPDA);
 
@@ -547,7 +543,7 @@ describe("xero", () => {
     
   });
 
-  it("creates a share redemption and allows the investor to cancel it", async () => {
+  it("Creates a share redemption and allows the investor to cancel it", async () => {
 
     const userSharesBefore = (await token.getAccount(connection, investorFundATA, "confirmed")).amount;
     const tx1 = await program.methods
@@ -587,5 +583,40 @@ describe("xero", () => {
     expect(redeemAccounts.length).to.eq(0);
     expect(Number(userSharesBefore)).to.eq(Number(userSharesAfter));
   });
+
+  it("Allows the manager to withdraw all funds from the stablecoin vault", async () => {
+    const stablecoinVaultBalanceBefore = (await token.getAccount(connection, fundStablecoinVault, "confirmed")).amount;
+
+    const balanceInBN = new anchor.BN(Number(stablecoinVaultBalanceBefore));
+
+    const managerStablecoinATA = token.getAssociatedTokenAddressSync(
+        stablecoinMint,
+        manager.publicKey,
+    );
+
+    const tx = await program.methods
+        .withdrawFromVault(
+            fund.name,
+            balanceInBN
+        )
+        .accounts({
+            manager: manager.publicKey,
+            stablecoinMint: stablecoinMint,
+        })
+        .signers([
+            manager
+        ])
+        .rpc();
+        
+    await connection.confirmTransaction(tx, "confirmed");
+
+    const stablecoinVaultBalanceAfter = (await token.getAccount(connection, fundStablecoinVault, "confirmed")).amount;
+    const managerStablecoinBalanceAfter = (await token.getAccount(connection, managerStablecoinATA, "confirmed")).amount;
+
+    expect(Number(stablecoinVaultBalanceAfter)).to.eq(0);
+    expect(managerStablecoinBalanceAfter).to.eq(stablecoinVaultBalanceBefore);
+
+
+  })
 
 });

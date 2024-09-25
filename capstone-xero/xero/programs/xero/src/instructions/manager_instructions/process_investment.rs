@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{errors::FundError, Investment, InvestmentFund};
+use crate::{errors::FundError, Investment, InvestmentFund, SCALING_FACTOR};
 
 #[derive(Accounts)]
 #[instruction(fund_name: String, investment_identifier: String)]
@@ -40,8 +40,8 @@ impl<'info> ProcessInvestment<'info> {
 
         let daily_interest = investment.invested_amount
             .checked_mul(investment.interest_rate)
-            .and_then(|scaled_interest| scaled_interest.checked_div(30)) // Now divide by 30
-            .and_then(|scaled_interest| scaled_interest.checked_div(1_000_000)) // Scale back by 1_000_000
+            .and_then(|scaled_interest| scaled_interest.checked_div(30)) 
+            .and_then(|scaled_interest| scaled_interest.checked_div(SCALING_FACTOR)) 
             .ok_or(FundError::ArithmeticError)?;
 
         // add the revenue to the fund assets
