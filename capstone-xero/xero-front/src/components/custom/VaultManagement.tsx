@@ -56,7 +56,7 @@ export default function VaultManagement({
                 fundPubkey,
                 true
             );
-            const tokenAccount= await token.getAccount(connection, fundStablecoinVault);
+            const tokenAccount= await token.getAccount(connection, fundStablecoinVault, "confirmed");
             const supplyInBN = new anchor.BN(Number(tokenAccount.amount));
             setVaultUsdcBalance(Number(supplyInBN.div(SCALING_FACTOR)));
         }
@@ -101,8 +101,15 @@ export default function VaultManagement({
                     handleWithdrawOpenChange(false);
                     const link = `https://explorer.solana.com/tx/${signature}?cluster=devnet`
                     toast ({
-                        title: `Shares bought succesfully`,
-                        description: "Check your transaction here: " + link,
+                        title: `Succesfull withdrawal`,
+                        description: (
+                            <>
+                                Check your transaction{' '}
+                                <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                    here
+                                </a>
+                            </>
+                        ),
                     });
                 } catch(e) {
                     console.error("Error withdrawing from vault: ", e);
@@ -124,9 +131,37 @@ export default function VaultManagement({
             const execute = async () => {
                 try {
                     setIsDepositLoading(true);
+                    const instruction = await program.methods
+                        .depositIntoVault(
+                            fund.name,
+                            new anchor.BN(depositAmount).mul(SCALING_FACTOR)
+                        )
+                        .accounts({
+                            manager: publicKey,
+                            stablecoinMint: fund.stablecoinMint
+                        })
+                        .instruction();
 
+                    const transaction = new anchor.web3.Transaction();
+                    transaction.add(instruction);
+                    const signature = await sendTransaction(transaction, connection);
+                    await fetchDetails();
+                    setDepositAmount(0);
+                    handleDepositOpenChange(false);
+                    const link = `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+                    toast ({
+                        title: `Deposit succesful`,
+                        description: (
+                            <>
+                                Check your transaction{' '}
+                                <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                    here
+                                </a>
+                            </>
+                        ),
+                    });
                 } catch(e) {
-                    console.error("Error depositing to vault: ", e);
+                    console.error("Error depositing into vault: ", e);
                     toast({
                         title: "Error",
                         description: "There was an error depositing USDC",

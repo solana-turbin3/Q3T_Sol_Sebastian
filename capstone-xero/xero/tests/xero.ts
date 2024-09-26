@@ -615,8 +615,38 @@ describe("xero", () => {
 
     expect(Number(stablecoinVaultBalanceAfter)).to.eq(0);
     expect(managerStablecoinBalanceAfter).to.eq(stablecoinVaultBalanceBefore);
+  })
 
+  it("Allows the manager to deposit into the stablecoin vault", async () => {
+            
+    const managerStablecoinATA = token.getAssociatedTokenAddressSync(
+        stablecoinMint,
+        manager.publicKey,
+    );
 
+    const managerBalanceBefore = (await token.getAccount(connection, managerStablecoinATA, "confirmed")).amount;
+
+    const tx = await program.methods
+        .depositIntoVault(
+            fund.name,
+            new anchor.BN(Number(managerBalanceBefore))
+        )
+        .accounts({
+            manager: manager.publicKey,
+            stablecoinMint: stablecoinMint,
+        })
+        .signers([
+            manager
+        ])
+        .rpc();
+        
+    await connection.confirmTransaction(tx, "confirmed");
+
+    const stablecoinVaultBalanceAfter = (await token.getAccount(connection, fundStablecoinVault, "confirmed")).amount;
+    const managerStablecoinBalanceAfter = (await token.getAccount(connection, managerStablecoinATA, "confirmed")).amount;
+
+    expect(Number(managerStablecoinBalanceAfter)).to.eq(0);
+    expect(stablecoinVaultBalanceAfter).to.eq(managerBalanceBefore);
   })
 
 });

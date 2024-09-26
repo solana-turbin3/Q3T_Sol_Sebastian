@@ -10,16 +10,17 @@ export default function InvestorFunds() {
 
     const { program } = useStore();
 
+    const fetchFunds = async () => {
+        try {
+            const allFunds = await program!.account.investmentFund.all();
+            setFunds(allFunds);
+        } catch(e) {
+            console.error("Error fetching funds: ", e);
+        }
+    };
+
     useEffect(() => {
         if (program) {
-            const fetchFunds = async () => {
-                try {
-                    const allFunds = await program.account.investmentFund.all();
-                    setFunds(allFunds);
-                } catch(e) {
-                    console.error("Error fetching funds: ", e);
-                }
-            };
             fetchFunds();
         }
     }, [program])
@@ -27,7 +28,7 @@ export default function InvestorFunds() {
     return (
         <div className="grid grid-cols-4 gap-4">
             {funds.map(fund => (
-                <FundCardInvestor key={fund.account.name} fund={fund.account} fundPubkey={fund.publicKey} />
+                <FundCardInvestor key={fund.account.name} fund={fund.account} fundPubkey={fund.publicKey} fetchFunds={fetchFunds}/>
             ))}
         </div>
     )

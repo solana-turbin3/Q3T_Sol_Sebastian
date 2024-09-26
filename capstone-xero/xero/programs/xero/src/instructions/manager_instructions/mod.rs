@@ -18,3 +18,6 @@ pub use process_redemption::*;
 
 pub mod vault_withdrawal;
 pub use vault_withdrawal::*;
+
+pub mod vault_deposit;
+pub use vault_deposit::*;
