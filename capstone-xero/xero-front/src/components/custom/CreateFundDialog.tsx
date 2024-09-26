@@ -100,7 +100,14 @@ export default function CreateFundDialog() {
       
                     toast ({
                         title: "Fund created succesfully",
-                        description: "Check your transaction here: " + link,
+                        description: (
+                            <>
+                                Check your transaction{' '}
+                                <a href={link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                    here
+                                </a>
+                            </>
+                        ),
                     });
                 } catch(e) {
                     console.error("Error in initializeFund: ", e);

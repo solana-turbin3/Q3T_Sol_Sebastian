@@ -675,6 +675,255 @@ export type Xero = {
         ]
       },
       {
+        "name": "depositIntoVault",
+        "discriminator": [
+          139,
+          95,
+          58,
+          125,
+          29,
+          54,
+          196,
+          76
+        ],
+        "accounts": [
+          {
+            "name": "manager",
+            "writable": true,
+            "signer": true
+          },
+          {
+            "name": "investmentFund",
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    102,
+                    117,
+                    110,
+                    100
+                  ]
+                },
+                {
+                  "kind": "arg",
+                  "path": "fundName"
+                },
+                {
+                  "kind": "account",
+                  "path": "manager"
+                }
+              ]
+            }
+          },
+          {
+            "name": "stablecoinMint"
+          },
+          {
+            "name": "fundStablecoinVault",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "account",
+                  "path": "investmentFund"
+                },
+                {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    221,
+                    246,
+                    225,
+                    215,
+                    101,
+                    161,
+                    147,
+                    217,
+                    203,
+                    225,
+                    70,
+                    206,
+                    235,
+                    121,
+                    172,
+                    28,
+                    180,
+                    133,
+                    237,
+                    95,
+                    91,
+                    55,
+                    145,
+                    58,
+                    140,
+                    245,
+                    133,
+                    126,
+                    255,
+                    0,
+                    169
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "stablecoinMint"
+                }
+              ],
+              "program": {
+                "kind": "const",
+                "value": [
+                  140,
+                  151,
+                  37,
+                  143,
+                  78,
+                  36,
+                  137,
+                  241,
+                  187,
+                  61,
+                  16,
+                  41,
+                  20,
+                  142,
+                  13,
+                  131,
+                  11,
+                  90,
+                  19,
+                  153,
+                  218,
+                  255,
+                  16,
+                  132,
+                  4,
+                  142,
+                  123,
+                  216,
+                  219,
+                  233,
+                  248,
+                  89
+                ]
+              }
+            }
+          },
+          {
+            "name": "managerStablecoinAta",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "account",
+                  "path": "manager"
+                },
+                {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    221,
+                    246,
+                    225,
+                    215,
+                    101,
+                    161,
+                    147,
+                    217,
+                    203,
+                    225,
+                    70,
+                    206,
+                    235,
+                    121,
+                    172,
+                    28,
+                    180,
+                    133,
+                    237,
+                    95,
+                    91,
+                    55,
+                    145,
+                    58,
+                    140,
+                    245,
+                    133,
+                    126,
+                    255,
+                    0,
+                    169
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "stablecoinMint"
+                }
+              ],
+              "program": {
+                "kind": "const",
+                "value": [
+                  140,
+                  151,
+                  37,
+                  143,
+                  78,
+                  36,
+                  137,
+                  241,
+                  187,
+                  61,
+                  16,
+                  41,
+                  20,
+                  142,
+                  13,
+                  131,
+                  11,
+                  90,
+                  19,
+                  153,
+                  218,
+                  255,
+                  16,
+                  132,
+                  4,
+                  142,
+                  123,
+                  216,
+                  219,
+                  233,
+                  248,
+                  89
+                ]
+              }
+            }
+          },
+          {
+            "name": "systemProgram",
+            "address": "11111111111111111111111111111111"
+          },
+          {
+            "name": "tokenProgram",
+            "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          },
+          {
+            "name": "associatedTokenProgram",
+            "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+          }
+        ],
+        "args": [
+          {
+            "name": "fundName",
+            "type": "string"
+          },
+          {
+            "name": "depositAmount",
+            "type": "u64"
+          }
+        ]
+      },
+      {
         "name": "initializeFund",
         "discriminator": [
           212,
@@ -2595,7 +2844,7 @@ export type Xero = {
         }
       }
     ]
-};
+  };
   
 export const IDL = {
     "address": "E7s9u89mMuVGULoSnY6PA1yLkcAev8MeTMxxA33pskFo",
@@ -3270,6 +3519,255 @@ export const IDL = {
           {
             "name": "manager",
             "type": "pubkey"
+          }
+        ]
+      },
+      {
+        "name": "deposit_into_vault",
+        "discriminator": [
+          139,
+          95,
+          58,
+          125,
+          29,
+          54,
+          196,
+          76
+        ],
+        "accounts": [
+          {
+            "name": "manager",
+            "writable": true,
+            "signer": true
+          },
+          {
+            "name": "investment_fund",
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "const",
+                  "value": [
+                    102,
+                    117,
+                    110,
+                    100
+                  ]
+                },
+                {
+                  "kind": "arg",
+                  "path": "fund_name"
+                },
+                {
+                  "kind": "account",
+                  "path": "manager"
+                }
+              ]
+            }
+          },
+          {
+            "name": "stablecoin_mint"
+          },
+          {
+            "name": "fund_stablecoin_vault",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "account",
+                  "path": "investment_fund"
+                },
+                {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    221,
+                    246,
+                    225,
+                    215,
+                    101,
+                    161,
+                    147,
+                    217,
+                    203,
+                    225,
+                    70,
+                    206,
+                    235,
+                    121,
+                    172,
+                    28,
+                    180,
+                    133,
+                    237,
+                    95,
+                    91,
+                    55,
+                    145,
+                    58,
+                    140,
+                    245,
+                    133,
+                    126,
+                    255,
+                    0,
+                    169
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "stablecoin_mint"
+                }
+              ],
+              "program": {
+                "kind": "const",
+                "value": [
+                  140,
+                  151,
+                  37,
+                  143,
+                  78,
+                  36,
+                  137,
+                  241,
+                  187,
+                  61,
+                  16,
+                  41,
+                  20,
+                  142,
+                  13,
+                  131,
+                  11,
+                  90,
+                  19,
+                  153,
+                  218,
+                  255,
+                  16,
+                  132,
+                  4,
+                  142,
+                  123,
+                  216,
+                  219,
+                  233,
+                  248,
+                  89
+                ]
+              }
+            }
+          },
+          {
+            "name": "manager_stablecoin_ata",
+            "writable": true,
+            "pda": {
+              "seeds": [
+                {
+                  "kind": "account",
+                  "path": "manager"
+                },
+                {
+                  "kind": "const",
+                  "value": [
+                    6,
+                    221,
+                    246,
+                    225,
+                    215,
+                    101,
+                    161,
+                    147,
+                    217,
+                    203,
+                    225,
+                    70,
+                    206,
+                    235,
+                    121,
+                    172,
+                    28,
+                    180,
+                    133,
+                    237,
+                    95,
+                    91,
+                    55,
+                    145,
+                    58,
+                    140,
+                    245,
+                    133,
+                    126,
+                    255,
+                    0,
+                    169
+                  ]
+                },
+                {
+                  "kind": "account",
+                  "path": "stablecoin_mint"
+                }
+              ],
+              "program": {
+                "kind": "const",
+                "value": [
+                  140,
+                  151,
+                  37,
+                  143,
+                  78,
+                  36,
+                  137,
+                  241,
+                  187,
+                  61,
+                  16,
+                  41,
+                  20,
+                  142,
+                  13,
+                  131,
+                  11,
+                  90,
+                  19,
+                  153,
+                  218,
+                  255,
+                  16,
+                  132,
+                  4,
+                  142,
+                  123,
+                  216,
+                  219,
+                  233,
+                  248,
+                  89
+                ]
+              }
+            }
+          },
+          {
+            "name": "system_program",
+            "address": "11111111111111111111111111111111"
+          },
+          {
+            "name": "token_program",
+            "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          },
+          {
+            "name": "associated_token_program",
+            "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+          }
+        ],
+        "args": [
+          {
+            "name": "_fund_name",
+            "type": "string"
+          },
+          {
+            "name": "deposit_amount",
+            "type": "u64"
           }
         ]
       },

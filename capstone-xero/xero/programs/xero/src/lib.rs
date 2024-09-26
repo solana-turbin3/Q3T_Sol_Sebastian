@@ -159,4 +159,15 @@ pub mod xero {
 
         Ok(())
     }
+
+    pub fn deposit_into_vault(
+        ctx: Context<VaultDeposit>,
+        _fund_name: String,
+        deposit_amount: u64
+    ) -> Result<()> {
+
+        ctx.accounts.deposit_into_vault(deposit_amount)?;
+
+        Ok(())
+    }
 }
