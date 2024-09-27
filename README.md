@@ -26,7 +26,7 @@ Xero is a decentralized platform built on Solana that enables investment funds t
 - Deployment: The program is deployed on Solana devnet
 - Program Address: `E7s9u89mMuVGULoSnY6PA1yLkcAev8MeTMxxA33pskFo`
 - Explorer: https://explorer.solana.com/address/E7s9u89mMuVGULoSnY6PA1yLkcAev8MeTMxxA33pskFo?cluster=devnet
-- 
+  
 ### Getting Started
 
 The project is located in the `capstone-xero` directory. To run the project locally, follow these steps:
